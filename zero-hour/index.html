@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Zero Hour</title>
+<style>
+  :root {
+    --bg1: #1b1035; --bg2: #0d0a1f; --a: #ff4d6d; --b: #3a86ff; --c: #b967ff;
+    --card1: #2b1a55; --card2: #1a1036;
+    --panel: rgba(255,255,255,.07); --line: rgba(255,255,255,.14); --text: #f4f6ff; --muted: #a7aecb;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: ui-rounded, "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text); overflow: hidden; user-select: none; -webkit-user-select: none;
+    touch-action: manipulation;
+    background:
+      radial-gradient(60vmax 60vmax at 0% -5%, color-mix(in srgb, var(--a) 28%, transparent), transparent 60%),
+      radial-gradient(55vmax 55vmax at 105% 15%, color-mix(in srgb, var(--b) 28%, transparent), transparent 60%),
+      radial-gradient(70vmax 60vmax at 50% 118%, color-mix(in srgb, var(--c) 30%, transparent), transparent 60%),
+      linear-gradient(165deg, var(--bg1), var(--bg2));
+  }
+  #app {
+    height: 100dvh; max-width: 440px; margin: 0 auto; padding: 14px 16px 18px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  header { display: flex; align-items: center; gap: 10px; }
+  h1 {
+    margin: 0; font-size: 25px; font-weight: 900; letter-spacing: .5px; flex: 1; white-space: nowrap;
+    background: linear-gradient(90deg, var(--a), var(--b) 55%, var(--c));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .pill {
+    font-weight: 800; font-size: 13px; padding: 7px 12px; border-radius: 999px; white-space: nowrap;
+    background: var(--panel); border: 1px solid var(--line);
+  }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+  .icon {
+    width: 38px; height: 38px; border-radius: 12px; font-size: 18px; font-weight: 800; flex: none;
+    background: var(--panel); border: 1px solid var(--line); transition: transform .12s;
+  }
+  .icon:active { transform: scale(.9); }
+  .icon.off { opacity: .45; text-decoration: line-through; }
+  #board {
+    flex: 1; min-height: 0; border-radius: 26px; position: relative; overflow: hidden;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,.07) 1.2px, transparent 1.6px) 0 0 / 22px 22px,
+      linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03));
+    border: 1px solid var(--line);
+    box-shadow: inset 0 0 50px rgba(0,0,0,.3), 0 18px 40px rgba(0,0,0,.35);
+  }
+  #board svg { width: 100%; height: 100%; display: block; }
+  #tip { text-align: center; font-size: 13px; color: var(--muted); min-height: 18px; margin: -2px 0; }
+  #foot {
+    display: flex; align-items: center; justify-content: center; gap: 14px; padding: 12px 16px; min-height: 66px;
+    border-radius: 22px; background: var(--panel); border: 1px solid var(--line);
+  }
+  .bit { position: fixed; z-index: 30; width: 9px; height: 9px; border-radius: 3px; pointer-events: none; }
+  #ov {
+    position: fixed; inset: 0; z-index: 40; display: none; place-items: center;
+    background: rgba(6,6,18,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  #ov.show { display: grid; animation: fade .25s; }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes pop-in { from { transform: scale(.6); } }
+  .card {
+    width: min(300px, 82vw); padding: 26px 22px; border-radius: 26px; text-align: center;
+    background: linear-gradient(180deg, var(--card1), var(--card2)); border: 1px solid var(--line);
+    box-shadow: 0 24px 60px rgba(0,0,0,.6); animation: pop-in .35s cubic-bezier(.3,1.6,.5,1);
+  }
+  .card h2 { margin: 0 0 6px; font-size: 28px; font-weight: 900; }
+  .card p { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+  .btns { display: flex; gap: 10px; }
+  .btn {
+    flex: 1; padding: 13px 10px; border-radius: 16px; font-weight: 800; font-size: 15px;
+    background: linear-gradient(180deg, #ffd166, #ff9f1c); color: #2a1500;
+    box-shadow: 0 5px 0 #b86a00; transition: transform .1s, box-shadow .1s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #b86a00; }
+  .btn.alt { background: linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.14)); color: var(--text); box-shadow: 0 5px 0 rgba(0,0,0,.45); }
+  :root { --bg1: #2a1238; --bg2: #120a1f; --a: #ffc145; --b: #ff4d6d; --c: #00d4e0; --card1: #4a1f56; --card2: #22102e; }
+  .link { stroke: rgba(255,255,255,.4); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 1 11; }
+  .bub { cursor: pointer; }
+  .bub .in { transform-box: fill-box; transform-origin: center; }
+  .bub .m { stroke: rgba(0,0,0,.38); stroke-width: 3; }
+  .bub text { font-weight: 900; font-size: 30px; fill: rgba(20,10,35,.85); pointer-events: none; }
+  .bub .ring { fill: none; stroke: #fff; stroke-width: 4; opacity: 0; pointer-events: none; }
+  .bub.hot .in { animation: hot .45s infinite alternate; }
+  .bub.up .in { animation: bump .4s; }
+  .bub.up .ring { animation: ring .55s; }
+  .bub.down .in { animation: dip .3s; }
+  @keyframes hot { to { transform: scale(1.1); filter: brightness(1.25); } }
+  @keyframes bump { 40% { transform: scale(1.22); } }
+  @keyframes dip { 40% { transform: scale(.88); } }
+  @keyframes ring { from { opacity: .9; transform: scale(.8); } to { opacity: 0; transform: scale(1.25); } }
+  .bub .ring { transform-box: fill-box; transform-origin: center; }
+  .heart { font-size: 32px; line-height: 1; color: #ff4d6d; text-shadow: 0 0 16px rgba(255,77,109,.7); transition: all .3s; }
+  .heart.lost { color: rgba(255,255,255,.15); text-shadow: none; transform: scale(.75); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>ZERO HOUR</h1>
+    <span class="pill" id="lvl">Level 1</span>
+    <button class="icon" id="undo" title="Undo" aria-label="Undo">↶</button>
+    <button class="icon" id="restart" title="Restart" aria-label="Restart">↻</button>
+    <button class="icon" id="mute" title="Sound" aria-label="Sound">♪</button>
+  </header>
+  <div id="board">
+    <svg id="svg" viewBox="0 0 360 420" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+  <div id="tip"></div>
+  <div id="foot"></div>
+</div>
+<div id="ov"><div class="card"><h2 id="ovT"></h2><p id="ovP"></p><div class="btns" id="ovB"></div></div></div>
+
+<script>
+'use strict';
+/* ---------- shared helpers ---------- */
+const KEY = 'zerohour', NS = 'http://www.w3.org/2000/svg';
+const PALETTE = ['#ff4d6d', '#ffb703', '#3ddc84', '#3a86ff', '#b967ff', '#00d4e0'];
+const $ = id => document.getElementById(id);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = n => Math.random() * n | 0;
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = pick(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const center = e => { const b = e.getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; };
+const buzz = p => { if (navigator.vibrate) navigator.vibrate(p); };
+function el(name, attrs, text) {
+  const e = document.createElementNS(NS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  return e;
+}
+let level = 1, muted = false;
+try { level = Math.max(1, +localStorage.getItem(KEY + '.level') || 1); muted = localStorage.getItem(KEY + '.muted') === '1'; } catch (e) {}
+
+/* ---------- sound ---------- */
+let ac, master, wet;
+function audio() {
+  if (!ac) {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain(); master.gain.value = .55;
+    const comp = ac.createDynamicsCompressor();
+    master.connect(comp); comp.connect(ac.destination);
+    wet = ac.createGain(); wet.gain.value = .28;
+    const delay = ac.createDelay(); delay.delayTime.value = .17;
+    const fb = ac.createGain(); fb.gain.value = .32;
+    wet.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(comp);
+  }
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function tone(f, d, o = {}) {
+  if (muted) return;
+  const a = audio(), s = a.currentTime + (o.t || 0), osc = a.createOscillator(), g = a.createGain();
+  osc.type = o.type || 'sine';
+  osc.frequency.setValueAtTime(f, s);
+  if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, s + d);
+  g.gain.setValueAtTime(.0001, s);
+  g.gain.exponentialRampToValueAtTime(o.v || .3, s + .012);
+  g.gain.exponentialRampToValueAtTime(.0001, s + d);
+  osc.connect(g); g.connect(master); if (o.echo) g.connect(wet);
+  osc.start(s); osc.stop(s + d + .03);
+}
+function whoosh(d, from, to, v = .25, t = 0) {
+  if (muted) return;
+  const a = audio(), s = a.currentTime + t, n = Math.ceil(a.sampleRate * d);
+  const buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) ch[i] = Math.random() * 2 - 1;
+  const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  src.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.3;
+  f.frequency.setValueAtTime(from, s); f.frequency.exponentialRampToValueAtTime(to, s + d);
+  g.gain.setValueAtTime(.0001, s); g.gain.exponentialRampToValueAtTime(v, s + d * .25);
+  g.gain.exponentialRampToValueAtTime(.0001, s + d);
+  src.connect(f); f.connect(g); g.connect(master); src.start(s);
+}
+const sfx = {
+  pop(f = 520, t = 0) { tone(f, .1, { to: f * .6, v: .34, t }); tone(f * 2.2, .05, { type: 'triangle', v: .1, t }); },
+  blocked() { tone(150, .1, { to: 95, type: 'square', v: .16 }); tone(130, .12, { to: 80, type: 'square', v: .16, t: .11 }); },
+  clear() { [587, 740, 880, 1175].forEach((f, i) => { tone(f, .3, { t: i * .07, v: .26, echo: 1 }); tone(f * 2, .2, { t: i * .07, type: 'triangle', v: .08, echo: 1 }); }); },
+  win() { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, .35, { t: i * .09, type: 'triangle', v: .26, echo: 1 }));
+          [523, 659, 784, 1047].forEach(f => tone(f, .9, { t: .6, v: .16, echo: 1 })); },
+  fail() { [392, 330, 262, 196].forEach((f, i) => tone(f, .28, { t: i * .14, to: f * .94, type: 'sawtooth', v: .13 })); },
+  undo() { tone(700, .1, { to: 420, type: 'triangle', v: .22 }); },
+  ui() { tone(620, .07, { to: 820, type: 'triangle', v: .18 }); }
+};
+
+/* ---------- effects and overlay ---------- */
+function burst(x, y, color, n = 12) {
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement('div'); b.className = 'bit';
+    b.style.cssText = `left:${x - 4}px;top:${y - 4}px;background:${color}`;
+    document.body.append(b);
+    const ang = rnd(0, Math.PI * 2), dist = rnd(30, 95);
+    b.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 },
+               { transform: `translate(${Math.cos(ang) * dist}px,${Math.sin(ang) * dist + 30}px) scale(.2) rotate(${rnd(-360, 360)}deg)`, opacity: 0 }],
+              { duration: rnd(450, 800), easing: 'cubic-bezier(.1,.7,.3,1)' }).onfinish = () => b.remove();
+  }
+}
+function show(title, text, buttons) {
+  $('ovT').textContent = title; $('ovP').textContent = text;
+  const box = $('ovB'); box.textContent = '';
+  for (const [label, fn, cls] of buttons) {
+    const b = document.createElement('button'); b.className = 'btn ' + (cls || ''); b.textContent = label;
+    b.onclick = () => { sfx.ui(); fn(); }; box.append(b);
+  }
+  $('ov').classList.add('show');
+}
+const hide = () => $('ov').classList.remove('show');
+function startLevel(tip) {
+  $('lvl').textContent = 'Level ' + level; $('tip').textContent = tip || ''; hide();
+  try { localStorage.setItem(KEY + '.level', level); } catch (e) {}
+}
+function win(title) {
+  sfx.win();
+  for (let i = 0; i < 7; i++) setTimeout(() => burst(rnd(40, innerWidth - 40), rnd(80, innerHeight * .6), PALETTE[i % PALETTE.length], 16), i * 110);
+  setTimeout(() => show(title, 'Level ' + level + ' cleared.', [['Next level', () => { level++; game.newLevel(); }]]), 650);
+}
+function lose(title, text) {
+  sfx.fail(); buzz([60, 40, 60]);
+  setTimeout(() => show(title, text, game.undo ? [['Undo', game.undo, 'alt'], ['Retry', game.restart]] : [['Retry', game.restart]]), 600);
+}
+
+/* ---------- the game ---------- */
+const LIVES = 3, svg = $('svg');
+const HUE = v => ['#ff4d6d', '#ff4d6d', '#ff8a3d', '#ffc145', '#3ddc84', '#00d4e0'][v] || '#3a86ff';
+let bubbles = [], links = [], nodes = [], strikes = 0, history = [], ended = false;
+
+// would always popping the lowest number clear the board? (used to reject levels with no trick to them)
+function lowestFirstWins(bs) {
+  const v = bs.map(b => b.v), alive = bs.map(() => true);
+  for (let n = bs.length; n > 0; n--) {
+    let m = -1;
+    for (let i = 0; i < v.length; i++) if (alive[i] && (m < 0 || v[i] < v[m])) m = i;
+    alive[m] = false;
+    for (let i = 0; i < v.length; i++) if (alive[i]) { v[i] += bs[m].nb.includes(i) ? 1 : -1; if (v[i] < 1) return false; }
+  }
+  return true;
+}
+// Picks a hidden popping order, then gives each bubble the smallest number that survives it,
+// so every level can be cleared without losing a heart.
+function generate(n, linkP, slack, trick) {
+  let bs, ls;
+  for (let attempt = 0; attempt < 300; attempt++) {
+    const cells = shuffle([...Array(12).keys()]).slice(0, n);
+    bs = cells.map((c, i) => ({ id: i, col: c % 3, row: c / 3 | 0, nb: [] })); ls = [];
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      if (Math.abs(bs[i].col - bs[j].col) + Math.abs(bs[i].row - bs[j].row) === 1 && Math.random() < linkP) {
+        ls.push([i, j]); bs[i].nb.push(j); bs[j].nb.push(i);
+      }
+    }
+    const pos = []; shuffle([...Array(n).keys()]).forEach((id, t) => pos[id] = t);
+    for (const b of bs) {
+      let need = 1;
+      for (let t = 1; t <= pos[b.id]; t++) need = Math.max(need, 1 + t - 2 * b.nb.filter(j => pos[j] < t).length);
+      b.v = need + (Math.random() < slack ? 1 : 0);
+    }
+    if (!trick || !lowestFirstWins(bs)) break;
+  }
+  return [bs, ls];
+}
+function newLevel() {
+  const [n, linkP, slack, trick] = [[5, 0, .6, 0], [6, .5, .5, 0], [7, .6, .3, 1], [8, .6, .25, 1], [9, .7, .2, 1], [10, .7, .15, 1], [11, .7, .1, 1]][level - 1] || [12, .7, .1, 1];
+  [bubbles, links] = generate(n, linkP, slack, trick);
+  for (const b of bubbles) { b.x = 70 + b.col * 110 + rnd(-8, 8); b.y = 62 + b.row * 99 + rnd(-8, 8); b.v0 = b.v; }
+  startLevel(level === 1 ? 'Every tap makes all the other bubbles count down. Pop each one before it hits zero.'
+    : level === 2 ? 'Linked bubbles gain +1 when you pop their neighbour.' : '');
+  restart();
+}
+function restart() {
+  for (const b of bubbles) { b.v = b.v0; b.alive = true; }
+  strikes = 0; history = []; ended = false; hide(); render({});
+}
+const snap = () => ({ strikes, b: bubbles.map(b => [b.v, b.alive]) });
+function undo() {
+  if (!history.length) return;
+  const s = history.pop(); strikes = s.strikes;
+  bubbles.forEach((b, i) => { [b.v, b.alive] = s.b[i]; });
+  ended = false; hide(); render({}); sfx.undo();
+}
+function render(delta) {
+  svg.textContent = ''; nodes = [];
+  for (const [i, j] of links) {
+    const a = bubbles[i], b = bubbles[j];
+    if (a.alive && b.alive) svg.append(el('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: 'link' }));
+  }
+  for (const b of bubbles) {
+    if (!b.alive) continue;
+    const g = el('g', { class: 'bub' + (b.v === 1 ? ' hot' : '') + (delta[b.id] > 0 ? ' up' : delta[b.id] < 0 ? ' down' : ''), transform: `translate(${b.x} ${b.y})` });
+    const inner = el('g', { class: 'in' });
+    inner.append(el('circle', { r: 34, class: 'm', fill: HUE(b.v) }),
+                 el('ellipse', { cx: -11, cy: -15, rx: 11, ry: 6.5, fill: 'rgba(255,255,255,.55)' }),
+                 el('text', { y: 11, 'text-anchor': 'middle' }, b.v));
+    g.append(inner, el('circle', { r: 36, class: 'ring' }));
+    g.addEventListener('pointerdown', e => { e.preventDefault(); tap(b); });
+    nodes[b.id] = g; svg.append(g);
+  }
+  $('foot').textContent = '';
+  for (let i = 0; i < LIVES; i++) {
+    const h = document.createElement('span'); h.className = 'heart' + (i >= LIVES - strikes ? ' lost' : ''); h.textContent = '♥';
+    $('foot').append(h);
+  }
+}
+function tap(b) {
+  if (ended || !b.alive) return;
+  audio(); history.push(snap());
+  burst(...center(nodes[b.id]), HUE(b.v)); sfx.pop(380 + b.v * 60);
+  b.alive = false;
+  const delta = {}; let burstCount = 0;
+  for (const o of bubbles) {
+    if (!o.alive) continue;
+    delta[o.id] = b.nb.includes(o.id) ? 1 : -1; o.v += delta[o.id];
+    if (o.v < 1) { // ran out of time
+      const p = center(nodes[o.id]); burst(...p, '#ffffff', 8); burst(...p, '#ff4d6d', 10);
+      o.alive = false; strikes++; burstCount++;
+    }
+  }
+  if (burstCount) { sfx.blocked(); whoosh(.3, 900, 120, .3); buzz(40); }
+  else { tone(1100, .03, { type: 'square', v: .05, t: .06 }); if (Object.values(delta).some(d => d > 0)) tone(880, .12, { to: 1320, v: .16, t: .05, echo: 1 }); }
+  render(delta);
+  if (strikes >= LIVES) { ended = true; lose('Time\'s up!', LIVES + ' bubbles hit zero.'); }
+  else if (!bubbles.some(o => o.alive)) { ended = true; win('All popped!'); }
+}
+const game = { newLevel, undo, restart: () => restart() };
+
+/* ---------- boot ---------- */
+if (game.undo) $('undo').onclick = game.undo; else $('undo').style.display = 'none';
+$('restart').onclick = () => { sfx.ui(); game.restart(); };
+$('mute').onclick = () => {
+  muted = !muted; $('mute').classList.toggle('off', muted);
+  try { localStorage.setItem(KEY + '.muted', muted ? '1' : '0'); } catch (e) {}
+  sfx.ui();
+};
+$('mute').classList.toggle('off', muted);
+game.newLevel();
+</script>
+</body>
+</html>

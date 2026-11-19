@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Umbretta Games</title>
+<meta name="description" content="Free browser games: puzzles and a strategy war. No sign-up, no downloads.">
+<meta name="theme-color" content="#14112a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314112a'/%3E%3Ccircle cx='22' cy='24' r='8' fill='%23ff4d6d'/%3E%3Ccircle cx='42' cy='24' r='8' fill='%23ffc300'/%3E%3Ccircle cx='22' cy='42' r='8' fill='%233ad29f'/%3E%3Ccircle cx='42' cy='42' r='8' fill='%234dabff'/%3E%3C/svg%3E">
+<style>
+  :root { --bg: #14112a; --card: #221d40; --card2: #2c2552; --ink: #f4f1ff; --mute: #a9a3c9; --line: rgba(255,255,255,.08); }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(1200px 600px at 50% -200px, #2d2360 0%, var(--bg) 60%) fixed, var(--bg);
+    color: var(--ink); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 40px 16px 56px; }
+  header { text-align: center; margin-bottom: 32px; }
+  h1 { margin: 0; font-size: clamp(30px, 7vw, 46px); letter-spacing: -.02em; font-weight: 850; }
+  header p { margin: 8px 0 0; color: var(--mute); }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+  a.game { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line);
+    color: inherit; text-decoration: none; transition: transform .15s, background .15s; }
+  a.game:hover, a.game:focus-visible { background: var(--card2); transform: translateY(-2px); outline: none; }
+  a.game:focus-visible { box-shadow: 0 0 0 2px #fff; }
+  a.game.big { grid-column: 1 / -1; }
+  .ic { flex: none; width: 64px; height: 64px; border-radius: 16px; }
+  .txt { min-width: 0; }
+  h2 { margin: 2px 0 4px; font-size: 19px; }
+  .txt p { margin: 0; color: var(--mute); font-size: 14.5px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .tag { font-size: 12px; padding: 2px 9px; border-radius: 99px; background: rgba(255,255,255,.07); color: var(--mute); }
+  .tag.prog { background: rgba(58,210,159,.16); color: #7fe8c4; }
+  footer { margin-top: 36px; text-align: center; color: var(--mute); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Umbretta Games</h1>
+    <p>Free to play in your browser. Your progress stays on this device.</p>
+  </header>
+  <div class="grid" id="grid"></div>
+  <footer>No sign-up, no ads, no downloads.</footer>
+</main>
+<script>
+const GAMES = [
+  { slug: 'iron-and-ember', name: 'Iron & Ember', big: true, tags: ['Strategy', '3D'],
+    text: 'Gather gold and timber, raise a barracks and march on the crimson keep before its warlord burns yours to the ground.',
+    icon: '<rect width="64" height="64" rx="16" fill="#2a1712"/><path d="M32 10c6 9 13 13 13 24a13 13 0 0 1-26 0c0-6 3-9 6-12 0 5 2 7 4 7-2-7 0-13 3-19z" fill="#ff7a2f"/><path d="M32 30c3 4 6 6 6 10a6 6 0 0 1-12 0c0-4 3-6 6-10z" fill="#ffd166"/>' },
+  { slug: 'fuse', name: 'Fuse', tags: ['Puzzle', 'Endless levels'], prog: progFuse,
+    text: 'Light the fuses in the right order and match three rockets of a colour.',
+    icon: '<rect width="64" height="64" rx="16" fill="#1a1440"/><path d="M32 8c9 8 9 22 7 30H25c-2-8-2-22 7-30z" fill="#ff4d6d"/><circle cx="32" cy="24" r="4" fill="#fff"/><path d="M25 38l-6 6 6-14zM39 38l6 6-6-14z" fill="#ffc300"/><path d="M32 40v14" stroke="#f1dfb4" stroke-width="3" stroke-linecap="round"/>' },
+  { slug: 'knot-out', name: 'Knot Out', key: 'knotout', tags: ['Puzzle'],
+    text: 'Tap a rope with nothing lying on top of it and collect three of a colour.',
+    icon: '<rect width="64" height="64" rx="16" fill="#13283a"/><path d="M10 22c14 0 30 20 44 20" stroke="#ff4d6d" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M10 42c14 0 30-20 44-20" stroke="#4dabff" stroke-width="6" fill="none" stroke-linecap="round"/>' },
+  { slug: 'sink-sort', name: 'Sink Sort', key: 'sinksort', tags: ['Puzzle'],
+    text: 'Tap a tube to drop the stone. Three of a colour touching will clear.',
+    icon: '<rect width="64" height="64" rx="16" fill="#132f2c"/><rect x="14" y="12" width="14" height="42" rx="7" fill="none" stroke="#cfe" stroke-width="3"/><rect x="36" y="12" width="14" height="42" rx="7" fill="none" stroke="#cfe" stroke-width="3"/><circle cx="21" cy="46" r="5" fill="#3ad29f"/><circle cx="21" cy="35" r="5" fill="#3ad29f"/><circle cx="43" cy="46" r="5" fill="#ffc300"/>' },
+  { slug: 'snap-band', name: 'Snap Band', key: 'snapband', tags: ['Puzzle'],
+    text: 'Drag a band around beads of one colour to collect them.',
+    icon: '<rect width="64" height="64" rx="16" fill="#2b1636"/><rect x="11" y="18" width="42" height="28" rx="14" fill="none" stroke="#e7b8ff" stroke-width="3" stroke-dasharray="5 4"/><circle cx="22" cy="32" r="6" fill="#c56cff"/><circle cx="42" cy="32" r="6" fill="#c56cff"/>' },
+  { slug: 'tip-top', name: 'Tip Top', key: 'tiptop', tags: ['Puzzle'],
+    text: 'Tap a side to drop the weight. Three of a colour on one side clear.',
+    icon: '<rect width="64" height="64" rx="16" fill="#302612"/><path d="M32 50V20" stroke="#f1dfb4" stroke-width="3"/><path d="M12 24h40" stroke="#f1dfb4" stroke-width="3" stroke-linecap="round"/><path d="M24 50h16" stroke="#f1dfb4" stroke-width="4" stroke-linecap="round"/><rect x="11" y="28" width="11" height="11" rx="3" fill="#ffc300"/><rect x="42" y="28" width="11" height="11" rx="3" fill="#ff4d6d"/>' },
+  { slug: 'zero-hour', name: 'Zero Hour', key: 'zerohour', tags: ['Puzzle'],
+    text: 'Every tap makes all the other bubbles count down. Pop each one before it hits zero.',
+    icon: '<rect width="64" height="64" rx="16" fill="#101e3a"/><circle cx="32" cy="32" r="19" fill="#4dabff"/><text x="32" y="40" text-anchor="middle" font-size="22" font-weight="900" font-family="system-ui,sans-serif" fill="#fff">3</text>' }
+];
+function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function progFuse() {
+  try {
+    const p = JSON.parse(read('fuse.profiles'));
+    const me = p && p.list && (p.list.find(x => x.id === p.active) || p.list[0]);
+    if (me) return me.level | 0;
+  } catch (e) {}
+  return +read('fuse.level') | 0;
+}
+const grid = document.getElementById('grid');
+for (const g of GAMES) {
+  const lvl = g.prog ? g.prog() : g.key ? +read(g.key + '.level') | 0 : 0;
+  const a = document.createElement('a');
+  a.className = 'game' + (g.big ? ' big' : ''); a.href = g.slug + '/';
+  a.innerHTML = '<svg class="ic" viewBox="0 0 64 64" aria-hidden="true">' + g.icon + '</svg><div class="txt"><h2></h2><p></p><div class="tags"></div></div>';
+  a.querySelector('h2').textContent = g.name;
+  a.querySelector('p').textContent = g.text;
+  const tags = a.querySelector('.tags');
+  for (const t of g.tags) { const s = document.createElement('span'); s.className = 'tag'; s.textContent = t; tags.append(s); }
+  if (lvl > 1) { const s = document.createElement('span'); s.className = 'tag prog'; s.textContent = 'On level ' + lvl; tags.append(s); }
+  grid.append(a);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Sink Sort</title>
+<style>
+  :root {
+    --bg1: #1b1035; --bg2: #0d0a1f; --a: #ff4d6d; --b: #3a86ff; --c: #b967ff;
+    --card1: #2b1a55; --card2: #1a1036;
+    --panel: rgba(255,255,255,.07); --line: rgba(255,255,255,.14); --text: #f4f6ff; --muted: #a7aecb;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: ui-rounded, "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text); overflow: hidden; user-select: none; -webkit-user-select: none;
+    touch-action: manipulation;
+    background:
+      radial-gradient(60vmax 60vmax at 0% -5%, color-mix(in srgb, var(--a) 28%, transparent), transparent 60%),
+      radial-gradient(55vmax 55vmax at 105% 15%, color-mix(in srgb, var(--b) 28%, transparent), transparent 60%),
+      radial-gradient(70vmax 60vmax at 50% 118%, color-mix(in srgb, var(--c) 30%, transparent), transparent 60%),
+      linear-gradient(165deg, var(--bg1), var(--bg2));
+  }
+  #app {
+    height: 100dvh; max-width: 440px; margin: 0 auto; padding: 14px 16px 18px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  header { display: flex; align-items: center; gap: 10px; }
+  h1 {
+    margin: 0; font-size: 25px; font-weight: 900; letter-spacing: .5px; flex: 1; white-space: nowrap;
+    background: linear-gradient(90deg, var(--a), var(--b) 55%, var(--c));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .pill {
+    font-weight: 800; font-size: 13px; padding: 7px 12px; border-radius: 999px; white-space: nowrap;
+    background: var(--panel); border: 1px solid var(--line);
+  }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+  .icon {
+    width: 38px; height: 38px; border-radius: 12px; font-size: 18px; font-weight: 800; flex: none;
+    background: var(--panel); border: 1px solid var(--line); transition: transform .12s;
+  }
+  .icon:active { transform: scale(.9); }
+  .icon.off { opacity: .45; text-decoration: line-through; }
+  #board {
+    flex: 1; min-height: 0; border-radius: 26px; position: relative; overflow: hidden;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,.07) 1.2px, transparent 1.6px) 0 0 / 22px 22px,
+      linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03));
+    border: 1px solid var(--line);
+    box-shadow: inset 0 0 50px rgba(0,0,0,.3), 0 18px 40px rgba(0,0,0,.35);
+  }
+  #board svg { width: 100%; height: 100%; display: block; }
+  #tip { text-align: center; font-size: 13px; color: var(--muted); min-height: 18px; margin: -2px 0; }
+  #foot {
+    display: flex; align-items: center; justify-content: center; gap: 14px; padding: 12px 16px; min-height: 66px;
+    border-radius: 22px; background: var(--panel); border: 1px solid var(--line);
+  }
+  .bit { position: fixed; z-index: 30; width: 9px; height: 9px; border-radius: 3px; pointer-events: none; }
+  #ov {
+    position: fixed; inset: 0; z-index: 40; display: none; place-items: center;
+    background: rgba(6,6,18,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  #ov.show { display: grid; animation: fade .25s; }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes pop-in { from { transform: scale(.6); } }
+  .card {
+    width: min(300px, 82vw); padding: 26px 22px; border-radius: 26px; text-align: center;
+    background: linear-gradient(180deg, var(--card1), var(--card2)); border: 1px solid var(--line);
+    box-shadow: 0 24px 60px rgba(0,0,0,.6); animation: pop-in .35s cubic-bezier(.3,1.6,.5,1);
+  }
+  .card h2 { margin: 0 0 6px; font-size: 28px; font-weight: 900; }
+  .card p { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+  .btns { display: flex; gap: 10px; }
+  .btn {
+    flex: 1; padding: 13px 10px; border-radius: 16px; font-weight: 800; font-size: 15px;
+    background: linear-gradient(180deg, #ffd166, #ff9f1c); color: #2a1500;
+    box-shadow: 0 5px 0 #b86a00; transition: transform .1s, box-shadow .1s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #b86a00; }
+  .btn.alt { background: linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.14)); color: var(--text); box-shadow: 0 5px 0 rgba(0,0,0,.45); }
+  :root { --bg1: #0b2f4a; --bg2: #071527; --a: #5ee7ff; --b: #4c8dff; --c: #3ddc84; --card1: #14507a; --card2: #0b2640; }
+  #board svg { position: relative; pointer-events: none; }
+  #zones { position: absolute; inset: 0; display: flex; }
+  #zones button { flex: 1; background: transparent; }
+  #zones button.hit { animation: hit .35s; }
+  @keyframes hit { from { background: rgba(255,255,255,.14); } }
+  .glass { fill: rgba(255,255,255,.07); stroke: rgba(255,255,255,.55); stroke-width: 3; }
+  .water { fill: url(#wt); }
+  .item { transition: transform .32s cubic-bezier(.45,0,.75,1.25); }
+  .item text { font-weight: 900; fill: rgba(10,20,40,.8); }
+  .cur .body { animation: bob 1.1s ease-in-out infinite alternate; }
+  @keyframes bob { to { transform: translateY(-7px); } }
+  #togo { fill: var(--muted); font-size: 13px; font-weight: 700; }
+  .bar { flex: 1; height: 14px; border-radius: 7px; background: rgba(0,0,0,.3); overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 7px; background: linear-gradient(90deg, var(--c), var(--a)); transition: width .3s; }
+  #foot small { font-size: 13px; font-weight: 800; color: var(--muted); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>SINK SORT</h1>
+    <span class="pill" id="lvl">Level 1</span>
+    <button class="icon" id="undo" title="Undo" aria-label="Undo">↶</button>
+    <button class="icon" id="restart" title="Restart" aria-label="Restart">↻</button>
+    <button class="icon" id="mute" title="Sound" aria-label="Sound">♪</button>
+  </header>
+  <div id="board">
+    <div id="zones"></div>
+    <svg viewBox="0 0 380 470" preserveAspectRatio="xMidYMid meet">
+      <defs><linearGradient id="wt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(94,231,255,.38)"/><stop offset="1" stop-color="rgba(40,90,220,.5)"/></linearGradient></defs>
+      <g id="queue"></g>
+      <text id="togo" x="190" y="112" text-anchor="middle"></text>
+      <g id="tubes"></g>
+    </svg>
+  </div>
+  <div id="tip"></div>
+  <div id="foot"></div>
+</div>
+<div id="ov"><div class="card"><h2 id="ovT"></h2><p id="ovP"></p><div class="btns" id="ovB"></div></div></div>
+
+<script>
+'use strict';
+/* ---------- shared helpers ---------- */
+const KEY = 'sinksort', NS = 'http://www.w3.org/2000/svg';
+const PALETTE = ['#ff4d6d', '#ffb703', '#3ddc84', '#3a86ff', '#b967ff', '#00d4e0'];
+const $ = id => document.getElementById(id);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = n => Math.random() * n | 0;
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = pick(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const center = e => { const b = e.getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; };
+const buzz = p => { if (navigator.vibrate) navigator.vibrate(p); };
+function el(name, attrs, text) {
+  const e = document.createElementNS(NS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  return e;
+}
+let level = 1, muted = false;
+try { level = Math.max(1, +localStorage.getItem(KEY + '.level') || 1); muted = localStorage.getItem(KEY + '.muted') === '1'; } catch (e) {}
+
+/* ---------- sound ---------- */
+let ac, master, wet;
+function audio() {
+  if (!ac) {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain(); master.gain.value = .55;
+    const comp = ac.createDynamicsCompressor();
+    master.connect(comp); comp.connect(ac.destination);
+    wet = ac.createGain(); wet.gain.value = .28;
+    const delay = ac.createDelay(); delay.delayTime.value = .17;
+    const fb = ac.createGain(); fb.gain.value = .32;
+    wet.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(comp);
+  }
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function tone(f, d, o = {}) {
+  if (muted) return;
+  const a = audio(), s = a.currentTime + (o.t || 0), osc = a.createOscillator(), g = a.createGain();
+  osc.type = o.type || 'sine';
+  osc.frequency.setValueAtTime(f, s);
+  if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, s + d);
+  g.gain.setValueAtTime(.0001, s);
+  g.gain.exponentialRampToValueAtTime(o.v || .3, s + .012);
+  g.gain.exponentialRampToValueAtTime(.0001, s + d);
+  osc.connect(g); g.connect(master); if (o.echo) g.connect(wet);
+  osc.start(s); osc.stop(s + d + .03);
+}
+function whoosh(d, from, to, v = .25, t = 0) {
+  if (muted) return;
+  const a = audio(), s = a.currentTime + t, n = Math.ceil(a.sampleRate * d);
+  const buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) ch[i] = Math.random() * 2 - 1;
+  const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  src.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.3;
+  f.frequency.setValueAtTime(from, s); f.frequency.exponentialRampToValueAtTime(to, s + d);
+  g.gain.setValueAtTime(.0001, s); g.gain.exponentialRampToValueAtTime(v, s + d * .25);
+  g.gain.exponentialRampToValueAtTime(.0001, s + d);
+  src.connect(f); f.connect(g); g.connect(master); src.start(s);
+}
+const sfx = {
+  pop(f = 520, t = 0) { tone(f, .1, { to: f * .6, v: .34, t }); tone(f * 2.2, .05, { type: 'triangle', v: .1, t }); },
+  blocked() { tone(150, .1, { to: 95, type: 'square', v: .16 }); tone(130, .12, { to: 80, type: 'square', v: .16, t: .11 }); },
+  clear() { [587, 740, 880, 1175].forEach((f, i) => { tone(f, .3, { t: i * .07, v: .26, echo: 1 }); tone(f * 2, .2, { t: i * .07, type: 'triangle', v: .08, echo: 1 }); }); },
+  win() { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, .35, { t: i * .09, type: 'triangle', v: .26, echo: 1 }));
+          [523, 659, 784, 1047].forEach(f => tone(f, .9, { t: .6, v: .16, echo: 1 })); },
+  fail() { [392, 330, 262, 196].forEach((f, i) => tone(f, .28, { t: i * .14, to: f * .94, type: 'sawtooth', v: .13 })); },
+  undo() { tone(700, .1, { to: 420, type: 'triangle', v: .22 }); },
+  ui() { tone(620, .07, { to: 820, type: 'triangle', v: .18 }); }
+};
+
+/* ---------- effects and overlay ---------- */
+function burst(x, y, color, n = 12) {
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement('div'); b.className = 'bit';
+    b.style.cssText = `left:${x - 4}px;top:${y - 4}px;background:${color}`;
+    document.body.append(b);
+    const ang = rnd(0, Math.PI * 2), dist = rnd(30, 95);
+    b.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 },
+               { transform: `translate(${Math.cos(ang) * dist}px,${Math.sin(ang) * dist + 30}px) scale(.2) rotate(${rnd(-360, 360)}deg)`, opacity: 0 }],
+              { duration: rnd(450, 800), easing: 'cubic-bezier(.1,.7,.3,1)' }).onfinish = () => b.remove();
+  }
+}
+function show(title, text, buttons) {
+  $('ovT').textContent = title; $('ovP').textContent = text;
+  const box = $('ovB'); box.textContent = '';
+  for (const [label, fn, cls] of buttons) {
+    const b = document.createElement('button'); b.className = 'btn ' + (cls || ''); b.textContent = label;
+    b.onclick = () => { sfx.ui(); fn(); }; box.append(b);
+  }
+  $('ov').classList.add('show');
+}
+const hide = () => $('ov').classList.remove('show');
+function startLevel(tip) {
+  $('lvl').textContent = 'Level ' + level; $('tip').textContent = tip || ''; hide();
+  try { localStorage.setItem(KEY + '.level', level); } catch (e) {}
+}
+function win(title) {
+  sfx.win();
+  for (let i = 0; i < 7; i++) setTimeout(() => burst(rnd(40, innerWidth - 40), rnd(80, innerHeight * .6), PALETTE[i % PALETTE.length], 16), i * 110);
+  setTimeout(() => show(title, 'Level ' + level + ' cleared.', [['Next level', () => { level++; game.newLevel(); }]]), 650);
+}
+function lose(title, text) {
+  sfx.fail(); buzz([60, 40, 60]);
+  setTimeout(() => show(title, text, game.undo ? [['Undo', game.undo, 'alt'], ['Retry', game.restart]] : [['Retry', game.restart]]), 600);
+}
+
+/* ---------- the game ---------- */
+const SLOT = 44, BASE = 446, STONES = ['#ff5d73', '#ffc145', '#4cd9a0', '#c58bff', '#ff9a5a', '#f6efe0'];
+let T = 3, CAP = 4, queue = [], idx = 0, tubes = [], panEl = [], els = new Map(), history = [], busy = false, ended = false;
+
+/* rules (pure, shared by the game and the level checker) */
+// heavier stones sink below lighter ones; equal weights stack in arrival order
+function insert(tube, it) { let p = 0; while (p < tube.length && tube[p].w >= it.w) p++; tube.splice(p, 0, it); }
+function findRun(tube) {
+  for (let i = 0; i < tube.length; i++) {
+    let j = i; while (j + 1 < tube.length && tube[j + 1].c === tube[i].c) j++;
+    if (j - i >= 2) return [i, j];
+    i = j;
+  }
+  return null;
+}
+function step(ts, it, t, cap) {
+  if (ts[t].length >= cap) return null;
+  const A = ts.map(x => x.slice()); insert(A[t], it);
+  let r; while ((r = findRun(A[t]))) A[t].splice(r[0], r[1] - r[0] + 1);
+  return A;
+}
+function solvable(q, tubeCount, cap) {
+  let count = 0; const seen = new Set();
+  const go = (i, ts) => {
+    if (i === q.length) return true;
+    if (++count > 150000) return false;
+    const k = i + '|' + ts.map(t => t.map(x => x.c * 4 + x.w).join('.')).sort().join('|');
+    if (seen.has(k)) return false;
+    seen.add(k);
+    for (let t = 0; t < ts.length; t++) { const r = step(ts, q[i], t, cap); if (r && go(i + 1, r)) return true; }
+    return false;
+  };
+  return go(0, Array.from({ length: tubeCount }, () => []));
+}
+
+function newLevel() {
+  // [tubes, tube height, colours, heaviest weight, stones]
+  const L = [[3, 4, 3, 1, 12], [3, 4, 4, 2, 15], [3, 4, 4, 3, 18], [3, 4, 5, 2, 18], [3, 4, 5, 3, 18], [4, 4, 6, 3, 24], [3, 4, 5, 3, 24]][level - 1] || [4, 4, 6, 3, 30];
+  let k, maxW, n; [T, CAP, k, maxW, n] = L;
+  do {
+    queue = Array.from({ length: n }, (_, i) => ({ id: i, c: pick(k), w: 1 + pick(maxW) }));
+  } while (!solvable(queue, T, CAP));
+  const tg = $('tubes'), zones = $('zones'); tg.textContent = ''; zones.textContent = ''; panEl = [];
+  for (let t = 0; t < T; t++) {
+    const x = 380 * (t + .5) / T, h = CAP * SLOT + 14;
+    tg.append(el('rect', { x: x - 30, y: BASE - h + 26, width: 60, height: h - 30, rx: 22, class: 'water' }),
+              el('rect', { x: x - 34, y: BASE - h, width: 68, height: h + 4, rx: 26, class: 'glass' }));
+    const g = el('g', { transform: `translate(${x} ${BASE})` }); tg.append(g); panEl.push(g);
+    const z = document.createElement('button'); z.setAttribute('aria-label', 'Tube ' + (t + 1));
+    z.addEventListener('pointerdown', e => { e.preventDefault(); drop(t, z); }); zones.append(z);
+  }
+  startLevel(level === 1 ? 'Tap a tube to drop the stone. Three of a colour touching will clear.'
+    : level === 2 ? 'Heavier stones sink below lighter ones.' : '');
+  restore({ idx: 0, tubes: Array.from({ length: T }, () => []) }); history = [];
+}
+const snap = () => ({ idx, tubes: tubes.map(t => t.map(x => ({ ...x }))) });
+function restore(s) {
+  idx = s.idx; tubes = s.tubes; busy = false; ended = false; hide();
+  els.clear(); panEl.forEach(p => p.textContent = '');
+  tubes.forEach((tube, t) => tube.forEach(it => { const e = mk(it); els.set(it.id, e); panEl[t].append(e); }));
+  for (let t = 0; t < T; t++) layout(t);
+  renderQueue();
+}
+const radius = it => 13 + it.w * 2.5;
+function mk(it) {
+  const g = el('g', { class: 'item' }), b = el('g', { class: 'body' }), r = radius(it);
+  b.append(el('circle', { r, fill: STONES[it.c], stroke: 'rgba(0,0,0,.38)', 'stroke-width': 2.5 }),
+           el('ellipse', { cx: -r * .3, cy: -r * .4, rx: r * .32, ry: r * .2, fill: 'rgba(255,255,255,.55)' }),
+           el('text', { y: r * .35, 'text-anchor': 'middle', 'font-size': r * .95 }, it.w));
+  g.append(b); return g;
+}
+function layout(t) {
+  tubes[t].forEach((it, i) => { it.y = -22 - i * SLOT; els.get(it.id).style.transform = `translate(0px,${it.y}px)`; });
+}
+function renderQueue() {
+  const qg = $('queue'); qg.textContent = '';
+  queue.slice(idx, idx + 3).forEach((it, i) => {
+    const e = mk(it);
+    e.style.transform = i ? `translate(${222 + i * 32}px,62px) scale(.55)` : 'translate(190px,60px) scale(1.3)';
+    if (i) e.style.opacity = .55; else e.classList.add('cur');
+    qg.append(e);
+  });
+  const left = queue.length - idx;
+  $('togo').textContent = left ? left + ' to go' : '';
+  $('foot').innerHTML = `<small>${idx} / ${queue.length}</small><div class="bar"><i style="width:${idx / queue.length * 100}%"></i></div>`;
+}
+function drop(t, zone) {
+  if (busy || ended || idx >= queue.length) return;
+  audio();
+  if (tubes[t].length >= CAP) { sfx.blocked(); buzz(30); return; }
+  busy = true; history.push(snap());
+  zone.classList.remove('hit'); zone.getBoundingClientRect(); zone.classList.add('hit');
+  const it = queue[idx++], e = mk(it);
+  insert(tubes[t], it); els.set(it.id, e); panEl[t].append(e);
+  e.style.transition = 'none'; e.style.transform = `translate(0px,${-CAP * SLOT - 90}px)`;
+  e.getBoundingClientRect(); e.style.transition = '';
+  layout(t); renderQueue(); whoosh(.22, 2200, 500, .09);
+  setTimeout(() => {
+    // plop: deeper for heavier stones, with a couple of bubbles
+    tone(520 - it.w * 90, .16, { to: 110, v: .4 }); whoosh(.14, 700, 250, .18);
+    tone(1300, .05, { to: 1900, v: .07, t: .1 }); tone(1600, .05, { to: 2300, v: .06, t: .17 });
+    settle(t);
+  }, 330);
+}
+function settle(t) {
+  const r = findRun(tubes[t]);
+  if (!r) return next();
+  sfx.clear();
+  for (const x of tubes[t].splice(r[0], r[1] - r[0] + 1)) {
+    const e = els.get(x.id); burst(...center(e), STONES[x.c]);
+    e.style.transition = 'transform .25s'; e.style.transform = `translate(0px,${x.y}px) scale(0)`;
+    setTimeout(() => e.remove(), 260); els.delete(x.id);
+  }
+  setTimeout(() => { layout(t); setTimeout(() => settle(t), 340); }, 250);
+}
+function next() {
+  busy = false;
+  if (idx >= queue.length) { ended = true; win('Sorted!'); }
+  else if (tubes.every(t => t.length >= CAP)) { ended = true; lose('Overflow!', 'Every tube is full.'); }
+}
+function undo() { if (busy || !history.length) return; restore(history.pop()); sfx.undo(); }
+function restart() { if (busy) return; restore({ idx: 0, tubes: Array.from({ length: T }, () => []) }); history = []; }
+addEventListener('keydown', e => { const t = +e.key - 1; if (t >= 0 && t < T) drop(t, $('zones').children[t]); });
+const game = { newLevel, undo, restart };
+
+/* ---------- boot ---------- */
+if (game.undo) $('undo').onclick = game.undo; else $('undo').style.display = 'none';
+$('restart').onclick = () => { sfx.ui(); game.restart(); };
+$('mute').onclick = () => {
+  muted = !muted; $('mute').classList.toggle('off', muted);
+  try { localStorage.setItem(KEY + '.muted', muted ? '1' : '0'); } catch (e) {}
+  sfx.ui();
+};
+$('mute').classList.toggle('off', muted);
+game.newLevel();
+</script>
+</body>
+</html>

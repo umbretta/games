@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Tip Top</title>
+<style>
+  :root {
+    --bg1: #0f2a3d; --bg2: #0a1424; --panel: rgba(255,255,255,.07);
+    --line: rgba(255,255,255,.14); --text: #f3fbff; --muted: #9db6c9;
+    --ok: #4cd9a0; --warn: #ffc145; --hot: #ff8a3d; --bad: #ff4d6d;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: ui-rounded, "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text); overflow: hidden; user-select: none; -webkit-user-select: none;
+    touch-action: manipulation;
+    background:
+      radial-gradient(60vmax 60vmax at 0% 0%, rgba(255,193,69,.22), transparent 60%),
+      radial-gradient(55vmax 55vmax at 100% 10%, rgba(255,93,115,.24), transparent 60%),
+      radial-gradient(70vmax 60vmax at 50% 115%, rgba(76,217,160,.26), transparent 60%),
+      linear-gradient(165deg, var(--bg1), var(--bg2));
+  }
+  #app {
+    height: 100dvh; max-width: 440px; margin: 0 auto; padding: 14px 16px 18px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  header { display: flex; align-items: center; gap: 10px; }
+  h1 {
+    margin: 0; font-size: 26px; font-weight: 900; letter-spacing: .5px; flex: 1;
+    background: linear-gradient(90deg, #ffc145, #ff5d73 55%, #5aa9ff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .pill {
+    font-weight: 800; font-size: 13px; padding: 7px 12px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--line);
+  }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+  .icon {
+    width: 38px; height: 38px; border-radius: 12px; font-size: 18px; font-weight: 800;
+    background: var(--panel); border: 1px solid var(--line); transition: transform .12s;
+  }
+  .icon:active { transform: scale(.9); }
+  .icon.off { opacity: .45; text-decoration: line-through; }
+
+  #board {
+    flex: 1; min-height: 0; border-radius: 26px; position: relative; overflow: hidden;
+    background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03));
+    border: 1px solid var(--line);
+    box-shadow: inset 0 0 50px rgba(0,0,0,.3), 0 18px 40px rgba(0,0,0,.35);
+  }
+  svg { width: 100%; height: 100%; display: block; position: relative; pointer-events: none; }
+  .zone {
+    position: absolute; top: 0; bottom: 0; width: 50%; background: transparent;
+    display: flex; align-items: flex-end; padding: 0 16px 10px;
+    font-size: 44px; font-weight: 900; color: rgba(255,255,255,.16);
+  }
+  .zone.l { left: 0; } .zone.r { right: 0; justify-content: flex-end; }
+  .zone.hit { animation: hit .35s; }
+  @keyframes hit { from { background: rgba(255,255,255,.14); } }
+
+  #beam { transition: transform .6s cubic-bezier(.3,1.9,.45,1); }
+  #beam.fall { transition: transform .7s cubic-bezier(.6,0,.9,.5); }
+  #bar { transition: fill .3s; }
+  #beam.danger #bar { fill: #ff6b5e; }
+  .item { transition: transform .3s cubic-bezier(.55,0,.9,.6), opacity .5s; }
+  .item text { font-weight: 900; fill: rgba(20,12,35,.8); }
+  .cur .body { animation: bob 1.1s ease-in-out infinite alternate; }
+  @keyframes bob { to { transform: translateY(-7px); } }
+  #togo { fill: var(--muted); font-size: 13px; font-weight: 700; }
+
+  #tip { text-align: center; font-size: 13px; color: var(--muted); min-height: 18px; margin: -2px 0; }
+
+  #gauge {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    border-radius: 22px; background: var(--panel); border: 1px solid var(--line);
+  }
+  #gauge b { font-size: 24px; font-weight: 900; width: 34px; text-align: center; }
+  #pips { flex: 1; display: flex; gap: 6px; align-items: center; }
+  #pips i {
+    flex: 1; height: 12px; border-radius: 6px; background: rgba(255,255,255,.12);
+    transition: transform .25s, background .25s, box-shadow .25s;
+  }
+  #pips i.on { background: var(--p); box-shadow: 0 0 14px var(--p); transform: scaleY(1.9); }
+  #gauge.danger { animation: pulse .5s infinite alternate; }
+  @keyframes pulse { to { border-color: var(--bad); box-shadow: 0 0 22px rgba(255,77,109,.5); } }
+
+  .bit { position: fixed; z-index: 30; width: 9px; height: 9px; border-radius: 3px; pointer-events: none; }
+  #ov {
+    position: fixed; inset: 0; z-index: 40; display: none; place-items: center;
+    background: rgba(5,10,20,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  #ov.show { display: grid; animation: fade .25s; }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes pop-in { from { transform: scale(.6); } }
+  .card {
+    width: min(300px, 82vw); padding: 26px 22px; border-radius: 26px; text-align: center;
+    background: linear-gradient(180deg, #1d4560, #10243a); border: 1px solid var(--line);
+    box-shadow: 0 24px 60px rgba(0,0,0,.6); animation: pop-in .35s cubic-bezier(.3,1.6,.5,1);
+  }
+  .card h2 { margin: 0 0 6px; font-size: 28px; font-weight: 900; }
+  .card p { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+  .btns { display: flex; gap: 10px; }
+  .btn {
+    flex: 1; padding: 13px 10px; border-radius: 16px; font-weight: 800; font-size: 15px;
+    background: linear-gradient(180deg, #ffd166, #ff9f1c); color: #2a1500;
+    box-shadow: 0 5px 0 #b86a00; transition: transform .1s, box-shadow .1s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #b86a00; }
+  .btn.alt { background: linear-gradient(180deg, #3f6f8f, #2a4d68); color: var(--text); box-shadow: 0 5px 0 #17303f; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>TIP TOP</h1>
+    <span class="pill" id="lvl">Level 1</span>
+    <button class="icon" id="undo" title="Undo" aria-label="Undo">↶</button>
+    <button class="icon" id="restart" title="Restart" aria-label="Restart">↻</button>
+    <button class="icon" id="mute" title="Sound" aria-label="Sound">♪</button>
+  </header>
+  <div id="board">
+    <button class="zone l" id="zl" aria-label="Drop left">‹</button>
+    <button class="zone r" id="zr" aria-label="Drop right">›</button>
+    <svg viewBox="0 0 380 470" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="bm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe29a"/><stop offset="1" stop-color="#e09a2b"/></linearGradient>
+        <linearGradient id="st" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fd0ff"/><stop offset="1" stop-color="#2b5f8a"/></linearGradient>
+      </defs>
+      <g id="queue"></g>
+      <text id="togo" x="190" y="112" text-anchor="middle"></text>
+      <path d="M190 340 L232 432 H148 Z" fill="url(#st)" stroke="rgba(0,0,0,.3)" stroke-width="2.5" stroke-linejoin="round"/>
+      <rect x="112" y="430" width="156" height="14" rx="7" fill="#2b5f8a" stroke="rgba(0,0,0,.3)" stroke-width="2.5"/>
+      <g transform="translate(190 345)">
+        <g id="beam">
+          <rect id="bar" x="-182" y="-8" width="364" height="16" rx="8" fill="url(#bm)" stroke="rgba(0,0,0,.35)" stroke-width="2.5"/>
+          <rect x="-178" y="-15" width="132" height="8" rx="4" fill="#fff3cf" stroke="rgba(0,0,0,.3)" stroke-width="2"/>
+          <rect x="46" y="-15" width="132" height="8" rx="4" fill="#fff3cf" stroke="rgba(0,0,0,.3)" stroke-width="2"/>
+          <g transform="translate(-112 -16)"><g id="pan0"></g></g>
+          <g transform="translate(112 -16)"><g id="pan1"></g></g>
+          <circle r="10" fill="#fff" stroke="rgba(0,0,0,.4)" stroke-width="3"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+  <div id="tip"></div>
+  <div id="gauge"><b id="tL">0</b><div id="pips"></div><b id="tR">0</b></div>
+</div>
+<div id="ov"><div class="card"><h2 id="ovT"></h2><p id="ovP"></p><div class="btns" id="ovB"></div></div></div>
+
+<script>
+'use strict';
+const LIMIT = 4; // the beam tips when one side is more than this much heavier
+const PALETTE = ['#ff5d73', '#ffc145', '#4cd9a0', '#5aa9ff'];
+const PIP = ['#ff4d6d', '#ff8a3d', '#ffc145', '#ffc145', '#4cd9a0', '#4cd9a0', '#4cd9a0', '#ffc145', '#ffc145', '#ff8a3d', '#ff4d6d'];
+const NS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+const beam = $('beam'), panEl = [$('pan0'), $('pan1')], qg = $('queue'), ovEl = $('ov'), gauge = $('gauge');
+const rnd = (a, b) => a + Math.random() * (b - a);
+const sum = p => p.reduce((s, x) => s + x.w, 0);
+
+let level = 1, queue = [], idx = 0, pans = [[], []], els = new Map(), history = [];
+let busy = false, ended = false, muted = false, wasDanger = false;
+try { level = Math.max(1, +localStorage.getItem('tiptop.level') || 1); muted = localStorage.getItem('tiptop.muted') === '1'; } catch (e) {}
+
+/* ---------- sound ---------- */
+let ac, master, wet;
+function audio() {
+  if (!ac) {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain(); master.gain.value = .55;
+    const comp = ac.createDynamicsCompressor();
+    master.connect(comp); comp.connect(ac.destination);
+    wet = ac.createGain(); wet.gain.value = .28;
+    const delay = ac.createDelay(); delay.delayTime.value = .17;
+    const fb = ac.createGain(); fb.gain.value = .32;
+    wet.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(comp);
+  }
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function tone(f, d, o = {}) {
+  if (muted) return;
+  const a = audio(), s = a.currentTime + (o.t || 0), osc = a.createOscillator(), g = a.createGain();
+  osc.type = o.type || 'sine';
+  osc.frequency.setValueAtTime(f, s);
+  if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, s + d);
+  g.gain.setValueAtTime(.0001, s);
+  g.gain.exponentialRampToValueAtTime(o.v || .3, s + .012);
+  g.gain.exponentialRampToValueAtTime(.0001, s + d);
+  osc.connect(g); g.connect(master); if (o.echo) g.connect(wet);
+  osc.start(s); osc.stop(s + d + .03);
+}
+function whoosh(d, from, to, v = .25, t = 0) {
+  if (muted) return;
+  const a = audio(), s = a.currentTime + t, n = Math.ceil(a.sampleRate * d);
+  const buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) ch[i] = Math.random() * 2 - 1;
+  const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  src.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.2;
+  f.frequency.setValueAtTime(from, s); f.frequency.exponentialRampToValueAtTime(to, s + d);
+  g.gain.setValueAtTime(.0001, s); g.gain.exponentialRampToValueAtTime(v, s + d * .25);
+  g.gain.exponentialRampToValueAtTime(.0001, s + d);
+  src.connect(f); f.connect(g); g.connect(master); src.start(s);
+}
+const sfx = {
+  fall() { whoosh(.25, 2400, 500, .1); },
+  thud(w) { tone(250 - w * 40, .2, { to: 70, v: .45 }); whoosh(.09, 900 - w * 150, 200, .22); tone(1500 - w * 250, .04, { type: 'triangle', v: .1 }); },
+  creak() { tone(96, .4, { to: 74, type: 'sawtooth', v: .07 }); tone(310, .14, { to: 250, type: 'square', v: .05, t: .05 }); tone(310, .14, { to: 250, type: 'square', v: .05, t: .25 }); },
+  clear() { [587, 740, 880, 1175].forEach((f, i) => { tone(f, .3, { t: i * .07, v: .26, echo: 1 }); tone(f * 2, .2, { t: i * .07, type: 'triangle', v: .08, echo: 1 }); }); },
+  win() { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, .35, { t: i * .09, type: 'triangle', v: .26, echo: 1 }));
+          [523, 659, 784, 1047].forEach(f => tone(f, .9, { t: .6, v: .16, echo: 1 })); },
+  fail() { tone(420, .7, { to: 55, type: 'sawtooth', v: .16 }); whoosh(.7, 1800, 150, .3, .1);
+           tone(90, .35, { to: 40, v: .5, t: .6 }); whoosh(.3, 600, 80, .4, .6); },
+  undo() { tone(700, .1, { to: 420, type: 'triangle', v: .22 }); },
+  ui() { tone(620, .07, { to: 820, type: 'triangle', v: .18 }); }
+};
+
+/* ---------- rules (pure, shared by the game and the level checker) ---------- */
+// returns the two pans after dropping `it` on `side`, or null if the beam tips
+function step(L, R, it, side) {
+  const A = [L.slice(), R.slice()];
+  A[side].push(it);
+  if (Math.abs(sum(A[1]) - sum(A[0])) > LIMIT) return null;
+  if (A[side].filter(x => x.c === it.c).length >= 3) {
+    A[side] = A[side].filter(x => x.c !== it.c);
+    if (Math.abs(sum(A[1]) - sum(A[0])) > LIMIT) return null;
+  }
+  return A;
+}
+function solvable(q) {
+  let nodes = 0; const seen = new Set();
+  const sig = p => p.map(x => x.c * 4 + x.w).sort().join(',');
+  const go = (i, L, R) => {
+    if (i === q.length) return true;
+    if (++nodes > 200000) return false;
+    const k = i + '|' + sig(L) + '|' + sig(R);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    for (const s of [0, 1]) { const r = step(L, R, q[i], s); if (r && go(i + 1, r[0], r[1])) return true; }
+    return false;
+  };
+  return go(0, [], []);
+}
+
+/* ---------- level ---------- */
+function newLevel() {
+  // [colours, heaviest weight, pieces] per level; later levels keep growing
+  const [k, maxW, n] = [[2, 1, 12], [2, 2, 15], [3, 2, 15], [3, 2, 21], [4, 2, 21], [3, 3, 18]][level - 1] || [4, 3, Math.min(18 + (level - 7) * 3, 36)];
+  do {
+    queue = Array.from({ length: n }, (_, i) => ({ id: i, c: Math.random() * k | 0, w: 1 + (Math.random() * maxW | 0) }));
+  } while (!solvable(queue));
+  $('lvl').textContent = 'Level ' + level;
+  $('tip').textContent = level === 1 ? 'Tap a side to drop the weight. Three of a colour on one side clear.'
+    : level === 2 ? 'A clear lightens that side, so it can tip the other way.' : '';
+  try { localStorage.setItem('tiptop.level', level); } catch (e) {}
+  restore({ idx: 0, pans: [[], []] }); history = [];
+}
+const snap = () => ({ idx, pans: pans.map(p => p.map(x => ({ ...x }))) });
+function restore(s) {
+  idx = s.idx; pans = s.pans; busy = false; ended = false; wasDanger = false;
+  ovEl.classList.remove('show'); beam.classList.remove('fall');
+  els.clear(); panEl.forEach(p => p.textContent = '');
+  pans.forEach((p, side) => p.forEach(it => { const e = mk(it); els.set(it.id, e); panEl[side].append(e); }));
+  layout(0); layout(1); updateBeam(true); renderQueue();
+}
+
+/* ---------- rendering ---------- */
+function el(name, attrs) { const e = document.createElementNS(NS, name); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+const radius = it => 12 + it.w * 3;
+function mk(it) {
+  const g = el('g', { class: 'item' }), b = el('g', { class: 'body' }), r = radius(it);
+  b.append(el('circle', { r, fill: PALETTE[it.c], stroke: 'rgba(0,0,0,.38)', 'stroke-width': 2.5 }),
+           el('ellipse', { cx: -r * .3, cy: -r * .4, rx: r * .32, ry: r * .2, fill: 'rgba(255,255,255,.55)' }));
+  const t = el('text', { y: r * .35, 'text-anchor': 'middle', 'font-size': r * .95 });
+  t.textContent = it.w; b.append(t); g.append(b);
+  return g;
+}
+function spot(it, i) { it.x = (i % 3 - 1) * 42; it.y = -radius(it) - (i / 3 | 0) * 38; }
+function layout(side) {
+  pans[side].forEach((it, i) => { spot(it, i); els.get(it.id).style.transform = `translate(${it.x}px,${it.y}px)`; });
+}
+const diff = () => sum(pans[1]) - sum(pans[0]);
+function updateBeam(silent) {
+  const d = diff(), danger = Math.abs(d) === LIMIT, shown = Math.max(-LIMIT - 1, Math.min(LIMIT + 1, d));
+  beam.style.transform = `rotate(${shown * 5}deg)`;
+  beam.classList.toggle('danger', danger); gauge.classList.toggle('danger', danger);
+  $('tL').textContent = sum(pans[0]); $('tR').textContent = sum(pans[1]);
+  [...$('pips').children].forEach((p, i) => p.classList.toggle('on', i === shown + LIMIT + 1));
+  if (danger && !wasDanger && !silent) { sfx.creak(); if (navigator.vibrate) navigator.vibrate(25); }
+  wasDanger = danger;
+}
+function renderQueue() {
+  qg.textContent = '';
+  queue.slice(idx, idx + 3).forEach((it, i) => {
+    const e = mk(it);
+    e.style.transform = i ? `translate(${222 + i * 32}px,62px) scale(.55)` : 'translate(190px,60px) scale(1.3)';
+    if (i) e.style.opacity = .55; else e.classList.add('cur');
+    qg.append(e);
+  });
+  const left = queue.length - idx;
+  $('togo').textContent = left ? left + ' to go' : '';
+}
+function burst(x, y, color, n = 12) {
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement('div'); b.className = 'bit';
+    b.style.cssText = `left:${x - 4}px;top:${y - 4}px;background:${color}`;
+    document.body.append(b);
+    const ang = rnd(0, Math.PI * 2), dist = rnd(30, 95);
+    b.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 },
+               { transform: `translate(${Math.cos(ang) * dist}px,${Math.sin(ang) * dist + 30}px) scale(.2) rotate(${rnd(-360, 360)}deg)`, opacity: 0 }],
+              { duration: rnd(450, 800), easing: 'cubic-bezier(.1,.7,.3,1)' }).onfinish = () => b.remove();
+  }
+}
+
+/* ---------- play ---------- */
+function drop(side) {
+  if (busy || ended || idx >= queue.length) return;
+  audio(); busy = true; history.push(snap());
+  const zone = side ? $('zr') : $('zl'); zone.classList.remove('hit'); zone.getBoundingClientRect(); zone.classList.add('hit');
+  const it = queue[idx++], e = mk(it);
+  pans[side].push(it); els.set(it.id, e); panEl[side].append(e);
+  spot(it, pans[side].length - 1);
+  e.style.transition = 'none'; e.style.transform = `translate(${it.x}px,${it.y - 270}px)`;
+  e.getBoundingClientRect(); e.style.transition = '';
+  e.style.transform = `translate(${it.x}px,${it.y}px)`;
+  renderQueue(); sfx.fall();
+  setTimeout(() => { sfx.thud(it.w); updateBeam(); setTimeout(() => resolve(side, it), 430); }, 290);
+}
+function resolve(side, it) {
+  if (Math.abs(diff()) > LIMIT) return fail();
+  const same = pans[side].filter(x => x.c === it.c);
+  if (same.length < 3) return next();
+  sfx.clear();
+  for (const x of same) {
+    const e = els.get(x.id), b = e.getBoundingClientRect();
+    burst(b.left + b.width / 2, b.top + b.height / 2, PALETTE[x.c]);
+    e.style.transition = 'transform .25s'; e.style.transform = `translate(${x.x}px,${x.y}px) scale(0)`;
+    setTimeout(() => e.remove(), 260); els.delete(x.id);
+  }
+  pans[side] = pans[side].filter(x => x.c !== it.c);
+  setTimeout(() => {
+    layout(side); updateBeam();
+    setTimeout(() => Math.abs(diff()) > LIMIT ? fail() : next(), 460);
+  }, 250);
+}
+function next() {
+  busy = false;
+  if (idx < queue.length) return;
+  ended = true; sfx.win();
+  for (let i = 0; i < 7; i++) setTimeout(() => burst(rnd(40, innerWidth - 40), rnd(80, innerHeight * .6), PALETTE[i % PALETTE.length], 16), i * 110);
+  setTimeout(() => show('Balanced!', 'Level ' + level + ' cleared.', [['Next level', () => { level++; newLevel(); }]]), 650);
+}
+function fail() {
+  ended = true; busy = false; sfx.fail();
+  const dir = Math.sign(diff());
+  beam.classList.add('fall'); beam.style.transform = `rotate(${dir * 36}deg)`;
+  pans.flat().forEach(it => {
+    const e = els.get(it.id);
+    e.style.transition = `transform ${rnd(.6, .95)}s cubic-bezier(.5,0,1,.6) .15s, opacity .5s .5s`;
+    e.style.transform = `translate(${it.x + dir * rnd(260, 420)}px,${it.y + rnd(30, 120)}px)`; e.style.opacity = 0;
+  });
+  if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+  setTimeout(() => show('Tipped over!', 'One side got more than ' + LIMIT + ' heavier.', [['Undo', undo, 'alt'], ['Retry', restart]]), 950);
+}
+function undo() {
+  if (busy || !history.length) return;
+  restore(history.pop()); sfx.undo();
+}
+function restart() { if (busy) return; restore({ idx: 0, pans: [[], []] }); history = []; }
+function show(title, text, buttons) {
+  $('ovT').textContent = title; $('ovP').textContent = text;
+  const box = $('ovB'); box.textContent = '';
+  for (const [label, fn, cls] of buttons) {
+    const b = document.createElement('button'); b.className = 'btn ' + (cls || ''); b.textContent = label;
+    b.onclick = () => { sfx.ui(); fn(); }; box.append(b);
+  }
+  ovEl.classList.add('show');
+}
+
+PIP.forEach(c => { const i = document.createElement('i'); i.style.setProperty('--p', c); $('pips').append(i); });
+$('zl').addEventListener('pointerdown', e => { e.preventDefault(); drop(0); });
+$('zr').addEventListener('pointerdown', e => { e.preventDefault(); drop(1); });
+addEventListener('keydown', e => { if (e.key === 'ArrowLeft') drop(0); else if (e.key === 'ArrowRight') drop(1); });
+$('undo').onclick = undo;
+$('restart').onclick = () => { sfx.ui(); restart(); };
+$('mute').onclick = () => {
+  muted = !muted; $('mute').classList.toggle('off', muted);
+  try { localStorage.setItem('tiptop.muted', muted ? '1' : '0'); } catch (e) {}
+  sfx.ui();
+};
+$('mute').classList.toggle('off', muted);
+newLevel();
+</script>
+</body>
+</html>

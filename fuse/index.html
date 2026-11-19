@@ -1,0 +1,1141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="description" content="Light the fuses in the right order and match three rockets of a colour. Endless fireworks puzzles, easy to hard.">
+<meta name="theme-color" content="#1a1440">
+<meta property="og:title" content="Fuse">
+<meta property="og:description" content="Light the fuses in the right order and match three rockets of a colour. Endless fireworks puzzles, easy to hard.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a1440'/%3E%3Cpath d='M32 8c9 8 9 22 7 30H25c-2-8-2-22 7-30z' fill='%23ff4d6d'/%3E%3Ccircle cx='32' cy='24' r='4' fill='%23fff'/%3E%3Cpath d='M25 38l-6 6 6-14zM39 38l6 6-6-14z' fill='%23ffc300'/%3E%3Cpath d='M32 40v14' stroke='%23f1dfb4' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>Fuse</title>
+<style>
+  :root {
+    --bg1: #1b1035; --bg2: #0d0a1f; --a: #ff4d6d; --b: #3a86ff; --c: #b967ff;
+    --card1: #2b1a55; --card2: #1a1036;
+    --panel: rgba(255,255,255,.07); --line: rgba(255,255,255,.14); --text: #f4f6ff; --muted: #a7aecb;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: ui-rounded, "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text); overflow: hidden; user-select: none; -webkit-user-select: none;
+    touch-action: manipulation;
+    background:
+      radial-gradient(60vmax 60vmax at 0% -5%, color-mix(in srgb, var(--a) 28%, transparent), transparent 60%),
+      radial-gradient(55vmax 55vmax at 105% 15%, color-mix(in srgb, var(--b) 28%, transparent), transparent 60%),
+      radial-gradient(70vmax 60vmax at 50% 118%, color-mix(in srgb, var(--c) 30%, transparent), transparent 60%),
+      linear-gradient(165deg, var(--bg1), var(--bg2));
+  }
+  #app {
+    height: 100dvh; max-width: 440px; margin: 0 auto; padding: 14px 16px 18px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  header { display: flex; align-items: center; gap: 10px; }
+  h1 {
+    margin: 0; font-size: 25px; font-weight: 900; letter-spacing: .5px; flex: 1; white-space: nowrap;
+    background: linear-gradient(90deg, var(--a), var(--b) 55%, var(--c));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .pill {
+    font-weight: 800; font-size: 13px; padding: 7px 12px; border-radius: 999px; white-space: nowrap;
+    background: var(--panel); border: 1px solid var(--line);
+  }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+  .icon {
+    width: 38px; height: 38px; border-radius: 12px; font-size: 18px; font-weight: 800; flex: none;
+    background: var(--panel); border: 1px solid var(--line); transition: transform .12s;
+  }
+  .icon:active { transform: scale(.9); }
+  .icon.off { opacity: .45; text-decoration: line-through; }
+  #board {
+    flex: 1; min-height: 0; border-radius: 26px; position: relative; overflow: hidden;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,.07) 1.2px, transparent 1.6px) 0 0 / 22px 22px,
+      linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03));
+    border: 1px solid var(--line);
+    box-shadow: inset 0 0 50px rgba(0,0,0,.3), 0 18px 40px rgba(0,0,0,.35);
+  }
+  #board svg { width: 100%; height: 100%; display: block; }
+  #tip { text-align: center; font-size: 13px; color: var(--muted); min-height: 18px; margin: -2px 0; }
+  #foot {
+    display: flex; align-items: center; justify-content: center; gap: 14px; padding: 12px 16px; min-height: 66px;
+    border-radius: 22px; background: var(--panel); border: 1px solid var(--line);
+  }
+  .bit { position: fixed; z-index: 30; width: 9px; height: 9px; border-radius: 3px; pointer-events: none; }
+  #ov {
+    position: fixed; inset: 0; z-index: 40; display: none; place-items: center;
+    background: rgba(6,6,18,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  #ov.show { display: grid; animation: fade .25s; }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes pop-in { from { transform: scale(.6); } }
+  .card {
+    width: min(300px, 82vw); padding: 26px 22px; border-radius: 26px; text-align: center;
+    background: linear-gradient(180deg, var(--card1), var(--card2)); border: 1px solid var(--line);
+    box-shadow: 0 24px 60px rgba(0,0,0,.6); animation: pop-in .35s cubic-bezier(.3,1.6,.5,1);
+  }
+  .card h2 { margin: 0 0 6px; font-size: 28px; font-weight: 900; }
+  .card p { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+  .btns { display: flex; gap: 10px; }
+  .btn {
+    flex: 1; padding: 13px 10px; border-radius: 16px; font-weight: 800; font-size: 15px;
+    background: linear-gradient(180deg, #ffd166, #ff9f1c); color: #2a1500;
+    box-shadow: 0 5px 0 #b86a00; transition: transform .1s, box-shadow .1s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #b86a00; }
+  .btn.alt { background: linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.14)); color: var(--text); box-shadow: 0 5px 0 rgba(0,0,0,.45); }
+  :root { --bg1: #1a1440; --bg2: #07061a; --a: #ffb703; --b: #ff4d6d; --c: #b967ff; --card1: #33247a; --card2: #150f3a; }
+  .ash { fill: none; stroke: rgba(0,0,0,.45); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 2 7; }
+  .fuse { fill: none; stroke: #f1dfb4; stroke-width: 5; stroke-linecap: round; }
+  .stub { stroke: #f1dfb4; stroke-width: 3; stroke-linecap: round; }
+  .rocket path { stroke: rgba(0,0,0,.4); stroke-width: 2; stroke-linejoin: round; }
+  .rocket.gone { display: none; }
+  .ign { cursor: pointer; }
+  .ign .dot { fill: #ff8a3d; stroke: #fff; stroke-width: 3; transform-box: fill-box; transform-origin: center; animation: beat .6s infinite alternate; }
+  .ign .halo { fill: rgba(255,138,61,.25); }
+  .ign.lit { pointer-events: none; }
+  .ign.lit .dot { animation: none; fill: #3a2f4a; stroke: rgba(255,255,255,.3); }
+  .ign.lit .halo { display: none; }
+  @keyframes beat { to { transform: scale(1.25); } }
+  .spark { fill: #fff6c2; filter: drop-shadow(0 0 6px #ffb703) drop-shadow(0 0 12px #ff5a00); display: none; }
+  .spark.on { display: block; }
+  .slot {
+    width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
+    background: rgba(0,0,0,.3); border: 2px dashed rgba(255,255,255,.18); transition: border-color .2s, box-shadow .2s;
+  }
+  #foot.warn .slot:empty { border-color: #ff4d6d; box-shadow: 0 0 14px rgba(255,77,109,.6); }
+  .tok {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff 0 8%, var(--k) 38%, color-mix(in srgb, var(--k) 55%, #000) 100%);
+    box-shadow: 0 0 18px var(--k), 0 4px 10px rgba(0,0,0,.45);
+  }
+  .tok.in { animation: pop-in .25s cubic-bezier(.3,1.8,.5,1); }
+  .tok.fly { position: fixed; z-index: 20; pointer-events: none; }
+  .tok.dud { position: relative; box-shadow: 0 4px 10px rgba(0,0,0,.45); }
+  .tok.dud::after { content: '\00d7'; position: absolute; inset: 0; display: grid; place-items: center; font: 900 24px/1 system-ui, sans-serif; color: #2a2838; }
+  .rocket .qm { font: 900 15px/1 system-ui, sans-serif; fill: #fff; text-anchor: middle; pointer-events: none; }
+
+  button.pill { cursor: pointer; transition: transform .12s; }
+  button.pill:active { transform: scale(.94); }
+  button.pill::after { content: ' ▾'; opacity: .6; }
+  .ign .ib { transform-box: fill-box; transform-origin: center; }
+  .ign .ib.shake { animation: shake .32s; }
+  @keyframes shake { 20% { transform: translateX(-4px); } 45% { transform: translateX(4px); } 70% { transform: translateX(-2px); } }
+  .ign.locked .dot { fill: #3a2f4a; stroke: rgba(255,255,255,.55); animation: none; }
+  .ign.locked .halo { fill: rgba(255,255,255,.06); }
+  .ign .ring { fill: none; stroke-width: 4; }
+  .ign .lockmark { pointer-events: none; }
+  #sel { position: fixed; inset: 0; z-index: 45; display: none; background: linear-gradient(165deg, var(--bg1), var(--bg2)); }
+  #sel.show { display: block; animation: fade .2s; }
+  #selIn { height: 100dvh; max-width: 440px; margin: 0 auto; padding: 14px 16px 0; display: flex; flex-direction: column; gap: 6px; }
+  #selHead { display: flex; align-items: center; gap: 10px; }
+  #selHead h2 { margin: 0; flex: 1; font-size: 24px; font-weight: 900; }
+  #selProg { font-size: 13px; font-weight: 800; color: var(--muted); }
+  #grid { flex: 1; min-height: 0; overflow-y: auto; padding: 0 2px 28px; -webkit-overflow-scrolling: touch; }
+  .tier { display: flex; justify-content: space-between; margin: 16px 2px 8px; font-size: 12px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); }
+  .cells { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .cell { aspect-ratio: 1; border-radius: 14px; font-weight: 800; font-size: 15px; background: var(--panel); border: 1px solid var(--line); position: relative; }
+  .cell.done { background: linear-gradient(180deg, rgba(255,195,0,.30), rgba(255,140,0,.12)); border-color: rgba(255,195,0,.45); }
+  .cell.cur { background: linear-gradient(180deg, #ffd166, #ff9f1c); color: #2a1500; border-color: transparent; box-shadow: 0 0 16px rgba(255,183,3,.55); }
+  .cell.locked { opacity: .3; cursor: default; }
+  .cell.here { outline: 2px solid #fff; outline-offset: 1px; }
+  #jump { margin: 0 2px 6px; }
+  .more { width: 100%; margin: 12px 0 0; }
+
+  [hidden] { display: none !important; }
+  button:focus-visible, input:focus-visible { outline: 2px solid #ffd166; outline-offset: 2px; }
+  #me { color: #1a1033; font-weight: 900; background: var(--k, var(--panel)); border-color: rgba(255,255,255,.35); }
+  #prof { position: fixed; inset: 0; z-index: 46; display: none; overflow-y: auto; background: linear-gradient(165deg, var(--bg1), var(--bg2)); }
+  #prof.show { display: block; animation: fade .2s; }
+  #profIn { max-width: 440px; margin: 0 auto; padding: 14px 16px 28px; display: flex; flex-direction: column; gap: 14px; }
+  .phead { display: flex; align-items: center; gap: 10px; min-height: 38px; }
+  .phead h2 { margin: 0; flex: 1; font-size: 24px; font-weight: 900; }
+  .psub { margin: 0; color: var(--muted); font-size: 14px; }
+  #plist { display: flex; flex-direction: column; gap: 8px; }
+  .prow { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); }
+  .prow.on { border-color: rgba(255,195,0,.6); background: rgba(255,195,0,.1); }
+  .ppick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; background: none; text-align: left; padding: 2px; }
+  .av { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: #1a1033; background: var(--k); box-shadow: 0 0 12px color-mix(in srgb, var(--k) 60%, transparent); }
+  .ptxt { min-width: 0; display: flex; flex-direction: column; }
+  .ptxt b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ptxt small { color: var(--muted); font-size: 12px; font-weight: 700; }
+  .pdel { padding: 8px 10px; border-radius: 12px; font-size: 12px; font-weight: 800; color: var(--muted); background: none; }
+  .pdel.sure { color: #fff; background: #d6334f; }
+  .pbox { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 16px; border-radius: 22px; background: var(--panel); border: 1px solid var(--line); }
+  .pbox h3 { margin: 0; font-size: 16px; font-weight: 900; }
+  #prof input { width: 100%; min-width: 0; font: inherit; font-size: 16px; font-weight: 700; color: var(--text); padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(0,0,0,.3); user-select: text; -webkit-user-select: text; outline: none; }
+  #prof input:focus { border-color: rgba(255,195,0,.7); }
+  .pcols { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sw { width: 32px; height: 32px; border-radius: 50%; background: var(--k); border: 3px solid transparent; }
+  .sw.on { border-color: #fff; box-shadow: 0 0 10px var(--k); }
+  .pmsg { margin: 0; font-size: 13px; color: #ffb3c0; }
+  .pmsg:empty { display: none; }
+  .pmsg.ok { color: #9ff0bf; }
+  .coderow { display: flex; gap: 8px; align-items: stretch; margin: 0; }
+  .coderow .btn { flex: none; padding: 12px 16px; }
+  #pcode { flex: 1; display: grid; place-items: center; padding: 12px; border-radius: 14px; font: 900 22px/1 ui-monospace, "Cascadia Mono", Consolas, monospace; letter-spacing: 3px; background: rgba(0,0,0,.3); border: 1px dashed rgba(255,255,255,.25); user-select: all; -webkit-user-select: all; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <button class="icon" id="me" title="Players" aria-label="Players">+</button>
+    <h1>FUSE</h1>
+    <button class="pill" id="lvl" title="Choose level" aria-label="Choose level">Level 1</button>
+    <button class="icon" id="undo" title="Undo" aria-label="Undo">↶</button>
+    <button class="icon" id="restart" title="Restart" aria-label="Restart">↻</button>
+    <button class="icon" id="mute" title="Sound" aria-label="Sound">♪</button>
+  </header>
+  <div id="board">
+    <svg id="svg" viewBox="0 0 360 420" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+  <div id="tip"></div>
+  <div id="foot"></div>
+</div>
+<div id="sel"><div id="selIn">
+  <div id="selHead"><h2>Levels</h2><span id="selProg"></span><button class="icon" id="selX" title="Close" aria-label="Close">✕</button></div>
+  <form id="jump" class="coderow" autocomplete="off" hidden>
+    <input id="jumpL" type="number" min="1" step="1" inputmode="numeric" placeholder="Go to level…" aria-label="Level number">
+    <button class="btn alt" type="submit">Go</button>
+  </form>
+  <div id="grid"></div>
+</div></div>
+<div id="prof"><div id="profIn">
+  <div class="phead"><h2 id="profT">Players</h2><button class="icon" id="profX" title="Close" aria-label="Close">✕</button></div>
+  <p class="psub" id="profSub"></p>
+  <div id="plist"></div>
+  <form id="pform" class="pbox" autocomplete="off">
+    <h3 id="pformT">New player</h3>
+    <input id="pname" maxlength="14" placeholder="Your name" aria-label="Player name">
+    <div id="pcols" class="pcols"></div>
+    <button class="btn" type="submit">Create player</button>
+    <p class="pmsg" id="pmsg"></p>
+  </form>
+  <div id="ptrans" class="pbox">
+    <h3>Play on another device</h3>
+    <p class="psub">Your progress is saved on this device. To carry it over, make a player on the other device and load this code there.</p>
+    <div class="coderow"><code id="pcode"></code><button class="btn alt" id="pcopy" type="button">Copy</button></div>
+    <form id="lform" class="coderow" autocomplete="off">
+      <input id="lcode" maxlength="16" placeholder="Code from another device" aria-label="Transfer code">
+      <button class="btn alt" type="submit">Load</button>
+    </form>
+    <p class="pmsg" id="lmsg"></p>
+  </div>
+</div></div>
+<div id="ov"><div class="card"><h2 id="ovT"></h2><p id="ovP"></p><div class="btns" id="ovB"></div></div></div>
+
+<script id="gen-src">
+'use strict';
+/* GEN-START */
+// ---------- levels, built on the fly from the level number ----------
+// Each level has its own difficulty band. The bands rise with the level number and never overlap.
+// To build level L: start from a puzzle seeded by L, then make small changes that keep it winnable
+// (swap rockets, move a rocket to the next fuse, add or remove a lock or chain, split or merge fuses,
+// add or drop a colour, a dud or a hook), keeping whichever change moves the difficulty closest to L's band,
+// until it lands inside. Same level number, same steps, same puzzle; and every level is harder than the one before.
+const RAMP = 1000, HOOKS = 4, MAX_BANDS = 9, Q = 1e6; // there is no last level
+const PALETTE = ['#ff4d6d', '#ffc300', '#3ddc84', '#3a86ff', '#b967ff', '#00d4e0', '#f4f4ff', '#ff7ad9'];
+const INTRO = { chain: 25, lock: 50, dud: 75, twin: 100, mystery: 125, small: 150 };
+const DUD = -1; // a dud rocket matches nothing; it sits on a hook until the next burst of three knocks it off
+function rng(seed) {
+  let a = seed >>> 0;
+  const r = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  r.int = n => r() * n | 0;
+  r.range = (a, b) => a + r.int(b - a + 1);
+  r.shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = r.int(i + 1); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+  return r;
+}
+// difficulty = solver score (how unlikely a random lighting order is to win) + board size
+// (small boards only reach a few scores, so the first levels climb in bigger steps)
+const W = { T: 1, D: 0.35, M: 0.06 };
+// levels 1..1000 climb, each strictly harder than the one before; after that there is no end:
+// every level gets its own seeded band among the hardest boards (boards can't keep getting harder forever)
+const climb = L => 0.49 + 6.6 * Math.pow((L - 1) / (RAMP - 1), 0.3) + 0.5 * (1 - Math.exp(-(L - 1) / 5));
+const target = climb;
+const edge = L => L <= 1 ? -Infinity : L > RAMP ? Infinity : Math.round((target(L - 1) + target(L)) / 2 * Q);
+function band(L) { // [lo, hi) of level L's difficulty score
+  if (L <= RAMP) return [edge(L), edge(L + 1)];
+  const lo = 6.8 + rng(L * 104729 + 3)() * 1.2; // endless levels: all hard, each a little different
+  return [Math.round(lo * Q), Math.round((lo + 0.15) * Q)];
+}
+function limits(L) {
+  const upTo = (intro, max, per) => L < intro ? 0 : Math.min(max, 1 + Math.floor((L - intro) / per));
+  const kMax = L <= 2 ? L + 1 : Math.min(8, 4 + Math.floor(L / 30));
+  return {
+    kLo: L <= 2 ? L + 1 : Math.max(3, Math.min(kMax, 3 + Math.floor(L / 50))), kMax, kMin: 2,
+    eMax: L < 15 ? 0 : Math.min(4, 1 + Math.floor(L / 60)),
+    chain: [L === INTRO.chain ? 1 : 0, upTo(INTRO.chain, 3, 60)],
+    lock: [L === INTRO.lock ? 1 : 0, upTo(INTRO.lock, 3, 60)],
+    twin: [L === INTRO.twin ? 1 : 0, upTo(INTRO.twin, 2, 100)],
+    dud: [L === INTRO.dud ? 1 : 0, upTo(INTRO.dud, 3, 100)],
+    mys: [L === INTRO.mystery ? 1 : 0, L < INTRO.mystery ? 0 : Math.min(8, 2 + Math.floor((L - INTRO.mystery) / 60))],
+    // from level 150 a set share of levels (25% rising to 60%) have a three-hook rack
+    hooks: L < INTRO.small ? [4] : L === INTRO.small || rng(L * 31 + 7)() < 0.25 + 0.35 * Math.min(1, (L - INTRO.small) / (RAMP - INTRO.small)) ? [3] : [4]
+  };
+}
+// a firing order that never fills the rack, as long as the fuses are lit in the right order
+function safeOrder(counts, r, hooks) {
+  const total = counts.reduce((a, b) => a + b, 0);
+  for (let tries = 0; tries < 200; tries++) {
+    const left = counts.slice(), held = counts.map(() => 0), seq = [];
+    while (seq.length < total) {
+      const opts = [];
+      for (let c = 0; c < counts.length; c++) {
+        if (!left[c]) continue;
+        const sum = held.reduce((a, b) => a + b, 0) - held[c] + (held[c] + 1) % 3;
+        if (sum < hooks) opts.push(c);
+      }
+      const fits = (h, c) => h.reduce((a, b) => a + b, 0) - h[c] + (h[c] + 1) % 3 < hooks;
+      const live = opts.filter(c => {
+        if (seq.length + 1 === total) return true;
+        const h = held.slice(); h[c] = (h[c] + 1) % 3;
+        return counts.some((_, x) => left[x] - (x === c) > 0 && fits(h, x));
+      });
+      if (!live.length) break;
+      const c = live[r.int(live.length)];
+      seq.push(c); left[c]--; held[c] = (held[c] + 1) % 3;
+    }
+    if (seq.length === total) return seq;
+  }
+  return null;
+}
+// solver: units are things you can light (a twin pair is one unit); state = set of finished units plus
+// the duds on the rack. Returns two chances of winning: lighting any unit at random (P), and a careful player who
+// never lights a fuse that overflows the rack on its own (Ps). Losses the careful player still walks into are traps.
+function solve(lv) {
+  const U = lv.units, m = U.length, full = (1 << m) - 1, K = lv.cols.length;
+  const memoR = new Float64Array(4 << m).fill(-1), memoS = new Float64Array(4 << m).fill(-1);
+  const countsOf = mask => { const c = new Array(K).fill(0); for (let u = 0; u < m; u++) if (mask >> u & 1) for (const x of U[u].seq) if (x >= 0) c[x]++; return c; };
+  function run(mask, d, u) {
+    const cnt = countsOf(mask);
+    while (true) {
+      for (const x of U[u].seq) {
+        if (x < 0) d++; else if (++cnt[x] % 3 === 0) d = 0;
+        let held = d; for (let c = 0; c < K; c++) held += cnt[c] % 3;
+        if (held >= lv.hooks) return -1;
+      }
+      mask |= 1 << u;
+      const nx = U[u].next;
+      if (nx < 0 || (mask >> nx & 1)) return mask * 4 + d;
+      u = nx;
+    }
+  }
+  function P(st) {
+    const mask = st >> 2;
+    if (mask === full) return [1, 1];
+    if (memoR[st] >= 0) return [memoR[st], memoS[st]];
+    const cnt = countsOf(mask); let n = 0, sr = 0, ns = 0, ss = 0;
+    for (let u = 0; u < m; u++) {
+      if (mask >> u & 1) continue;
+      if (U[u].lock >= 0 && cnt[U[u].lock] < 3) continue;
+      n++; const nx = run(mask, st & 3, u);
+      if (nx >= 0) { const [r, c] = P(nx); sr += r; ns++; ss += c; }
+    }
+    memoR[st] = n ? sr / n : 0; memoS[st] = ns ? ss / ns : 0;
+    return [memoR[st], memoS[st]];
+  }
+  return P(0);
+}
+// a puzzle in the making: the winning firing order (seq), cut into fuses (sizes), with twins, chain links and locks
+const clone = G => ({ L: G.L, cols: G.cols, hooks: G.hooks, mys: G.mys, seq: G.seq.slice(), sizes: G.sizes.slice(), twin: G.twin.slice(), link: G.link.slice(), lock: G.lock.slice() });
+function lockColours(G, i) { // colours that have burst before fuse i in the winning order
+  const cnt = new Array(G.cols.length).fill(0); let at = 0;
+  for (let j = 0; j < i; j++) for (let z = 0; z < G.sizes[j]; z++) { const x = G.seq[at++]; if (x >= 0) cnt[x]++; }
+  return cnt.map((v, c) => v >= 3 ? c : -1).filter(c => c >= 0);
+}
+function valid(G) {
+  const lim = limits(G.L), n = G.sizes.length, held = G.cols.map(() => 0);
+  if (!lim.hooks.includes(G.hooks)) return false;
+  let h = 0, d = 0, duds = 0;
+  for (const c of G.seq) {
+    if (c < 0) { d++; duds++; } else { h -= held[c]; held[c] = (held[c] + 1) % 3; h += held[c]; if (!held[c]) d = 0; }
+    if (h + d >= G.hooks) return false;
+  }
+  if (G.probe) return true; // only the rack check matters while duds are being placed
+  if (duds < lim.dud[0] || duds > lim.dud[1] || G.mys < lim.mys[0] || G.mys > lim.mys[1] || G.mys > G.seq.length - duds) return false;
+  let sum = 0, twins = 0, chains = 0, locks = 0;
+  for (let i = 0; i < n; i++) {
+    const z = G.sizes[i];
+    if (z < (G.twin[i] ? 4 : 1) || z > 7) return false;
+    sum += z;
+    if (G.twin[i]) twins++;
+    if (G.link[i]) { if (i + 1 >= n || G.twin[i] || G.twin[i + 1] || G.lock[i + 1] >= 0) return false; chains++; }
+    if (G.lock[i] >= 0) locks++;
+  }
+  if (sum !== G.seq.length || n + twins > MAX_BANDS || n + twins < 2) return false;
+  if (chains < lim.chain[0] || chains > lim.chain[1] || locks < lim.lock[0] || locks > lim.lock[1] || twins < lim.twin[0] || twins > lim.twin[1]) return false;
+  const cnt = G.cols.map(() => 0); let at = 0;
+  for (let i = 0; i < n; i++) {
+    if (G.lock[i] >= 0 && (cnt[G.lock[i]] < 3 || (i > 0 && G.link[i - 1]))) return false;
+    for (let z = 0; z < G.sizes[i]; z++) { const x = G.seq[at++]; if (x >= 0) cnt[x]++; }
+  }
+  return true;
+}
+function fresh(L, r, kk, ee) {
+  const lim = limits(L);
+  for (let tries = 0; tries < 40; tries++) {
+    const k = kk != null ? kk : r.range(lim.kLo, lim.kMax), e = ee != null ? ee : r.range(0, lim.eMax);
+    const cols = r.shuffle(PALETTE.map((_, i) => i)).slice(0, k), counts = cols.map(() => 3);
+    for (let i = 0; i < e; i++) counts[r.int(k)] += 3;
+    const hooks = lim.hooks[r.int(lim.hooks.length)], seq = safeOrder(counts, r, hooks);
+    if (!seq) continue;
+    const dudsN = r.range(lim.dud[0], lim.dud[1]);
+    for (let dn = 0; dn < dudsN; dn++) for (let t = 0; t < 20; t++) { // a spot where the winning order still has room for it
+      const p = r.int(seq.length + 1); seq.splice(p, 0, DUD);
+      if (valid({ L, hooks, cols, seq, sizes: [], probe: true })) break;
+      seq.splice(p, 1);
+    }
+    const twinsN = r.range(lim.twin[0], lim.twin[1]), avg = L < 10 ? 3 : 2.4 + r() * 1.4;
+    const n = Math.max(2, Math.min(MAX_BANDS, Math.round(seq.length / avg))) - twinsN;
+    if (n < 1 || seq.length < n || seq.length > n * 7) continue;
+    const sizes = new Array(n).fill(1);
+    for (let extra = seq.length - n; extra > 0;) { const i = r.int(n); if (sizes[i] < 7) { sizes[i]++; extra--; } }
+    const G = { L, cols, hooks, mys: r.range(lim.mys[0], lim.mys[1]), seq, sizes, twin: new Array(n).fill(false), link: new Array(n).fill(false), lock: new Array(n).fill(-1) };
+    r.shuffle(sizes.map((z, i) => i).filter(i => sizes[i] >= 4)).slice(0, twinsN).forEach(i => G.twin[i] = true);
+    const chainsN = r.range(lim.chain[0], lim.chain[1]);
+    for (const i of r.shuffle(sizes.map((z, i) => i))) if (G.link.filter(Boolean).length < chainsN && i + 1 < n && !G.twin[i] && !G.twin[i + 1]) G.link[i] = true;
+    const locksN = r.range(lim.lock[0], lim.lock[1]);
+    for (const i of r.shuffle(sizes.map((z, i) => i))) {
+      if (G.lock.filter(c => c >= 0).length >= locksN || (i > 0 && G.link[i - 1])) continue;
+      const opts = lockColours(G, i); if (opts.length) G.lock[i] = opts[r.int(opts.length)];
+    }
+    if (valid(G)) return G;
+  }
+  return null;
+}
+// small changes; each returns the changed copy (checked for validity by the caller)
+const MOVES = [
+  (G, r) => { const i = r.int(G.seq.length - 1); if (G.seq[i] === G.seq[i + 1]) return null; [G.seq[i], G.seq[i + 1]] = [G.seq[i + 1], G.seq[i]]; return G; },
+  (G, r) => { if (G.sizes.length < 2) return null; const i = r.int(G.sizes.length - 1), d = r.int(2) ? 1 : -1; G.sizes[i] += d; G.sizes[i + 1] -= d; return G; },
+  (G, r) => { const i = r.int(G.sizes.length); if (G.lock[i] >= 0) { G.lock[i] = -1; return G; } const o = lockColours(G, i); if (!o.length) return null; G.lock[i] = o[r.int(o.length)]; return G; },
+  (G, r) => { const i = r.int(G.sizes.length); const o = lockColours(G, i); if (G.lock[i] < 0 || o.length < 2) return null; G.lock[i] = o[r.int(o.length)]; return G; },
+  (G, r) => { const i = r.int(G.sizes.length); G.link[i] = !G.link[i]; return G; },
+  (G, r) => { const i = r.int(G.sizes.length); G.twin[i] = !G.twin[i]; return G; },
+  (G, r) => { // split a fuse in two
+    const i = r.int(G.sizes.length), z = G.sizes[i];
+    if (z < 2 || G.twin[i] || G.link[i]) return null;
+    const a = 1 + r.int(z - 1);
+    G.sizes.splice(i, 1, a, z - a); G.twin.splice(i + 1, 0, false); G.link.splice(i + 1, 0, false); G.lock.splice(i + 1, 0, -1); return G;
+  },
+  (G, r) => { // add a dud
+    const p = r.int(G.seq.length + 1); let at = 0, i = 0;
+    while (i < G.sizes.length - 1 && at + G.sizes[i] < p) at += G.sizes[i++];
+    G.seq.splice(p, 0, DUD); G.sizes[i]++; return G;
+  },
+  (G, r) => { // remove a dud
+    const ds = G.seq.map((x, j) => x < 0 ? j : -1).filter(j => j >= 0); if (!ds.length) return null;
+    const p = ds[r.int(ds.length)]; let at = 0, i = 0;
+    while (at + G.sizes[i] <= p) at += G.sizes[i++];
+    G.seq.splice(p, 1); G.sizes[i]--; return G;
+  },
+  G => { G.hooks = 7 - G.hooks; return G; }, // three hooks or four
+  (G, r) => { G.mys += r.int(2) ? 1 : -1; return G; }, // one mystery rocket more or less
+  (G, r) => { // merge a fuse into the next
+    if (G.sizes.length < 2) return null;
+    const i = r.int(G.sizes.length - 1);
+    if (G.twin[i] || G.twin[i + 1] || G.link[i]) return null;
+    G.sizes[i] += G.sizes[i + 1]; G.sizes.splice(i + 1, 1); G.twin.splice(i + 1, 1); G.link.splice(i, 1); G.lock.splice(i + 1, 1); return G;
+  }
+];
+function evaluate(G) {
+  const units = [];
+  let at = 0;
+  G.sizes.forEach((z, i) => { units.push({ seq: G.seq.slice(at, at += z), next: G.link[i] ? i + 1 : -1, lock: G.lock[i] }); });
+  const lv = { hooks: G.hooks, cols: G.cols.map(i => PALETTE[i]), units };
+  const [P, Ps] = solve(lv), D = P > 0 ? -Math.log10(P) : Infinity, T = Ps > 0 ? -Math.log10(Ps) : Infinity;
+  const mech = G.link.filter(Boolean).length + G.lock.filter(c => c >= 0).length + G.twin.filter(Boolean).length + G.seq.filter(x => x < 0).length;
+  const q = Math.round((W.T * T + W.D * D + 0.035 * G.seq.length + 0.08 * units.length + 0.06 * G.cols.length + 0.05 * mech + W.M * G.mys) * Q);
+  return { lv, P, Ps, D, T, q };
+}
+function search(L) {
+  const r = rng(L * 7919 + 13), [lo, hi] = band(L), lim = limits(L);
+  const dist = q => q < lo ? lo - q : q >= hi ? q - hi + 1 : 0;
+  let cur = null, curE = null, evals = 0;
+  for (let i = 0; i < 6; i++) { // a few starting puzzles; keep the closest
+    const G = fresh(L, r); if (!G) continue;
+    const E = evaluate(G); evals++;
+    if (!cur || dist(E.q) < dist(curE.q)) { cur = G; curE = E; }
+  }
+  let best = cur, bestE = curE, stale = 0, sinceBest = 0;
+  for (let step = 0; step < 8000 && dist(curE.q); step++) {
+    if (++sinceBest > 40) { // stuck: start again from a new puzzle of any allowed size
+      const G = fresh(L, r, r.range(lim.kMin, lim.kMax), r.range(0, lim.eMax));
+      if (G) { cur = G; curE = evaluate(G); evals++; }
+      sinceBest = 0;
+    }
+    let pick = null, pickE = null;
+    for (let m = 0; m < 10; m++) {
+      let G;
+      if (m === 0) { // change the size of the board: one colour more or less, or one triple more or less
+        const up = curE.q < lo, k = cur.cols.length, e = (cur.seq.length - 3 * k) / 3, opt = [];
+        if (up) { if (k < lim.kMax) opt.push([k + 1, e]); if (e < lim.eMax) opt.push([k, e + 1]); }
+        else { if (k > lim.kMin) opt.push([k - 1, Math.min(e, lim.eMax)]); if (e > 0) opt.push([k, e - 1]); }
+        if (!opt.length) continue;
+        const [kk, ee] = opt[r.int(opt.length)];
+        G = fresh(L, r, kk, ee);
+      } else G = MOVES[r.int(MOVES.length)](clone(cur), r);
+      if (!G || !valid(G)) continue;
+      const E = evaluate(G); evals++;
+      if (!(E.P > 0)) continue;
+      if (!pick || dist(E.q) < dist(pickE.q)) { pick = G; pickE = E; }
+    }
+    if (!pick) continue;
+    if (dist(pickE.q) <= dist(curE.q) || ++stale > 12) { cur = pick; curE = pickE; stale = 0; } // ties allowed: walk across flat ground
+    if (dist(curE.q) < dist(bestE.q)) { best = cur; bestE = curE; sinceBest = 0; }
+  }
+  return { G: best, E: bestE, inBand: dist(bestE.q) === 0, evals };
+}
+// lay the fuses out on screen: chains become runs of adjacent rows that zigzag, twins two rows side by side
+function layout(G, r) {
+  const n = G.sizes.length, chunks = []; let at = 0;
+  const real = r.shuffle(G.seq.map((x, j) => x >= 0 ? j : -1).filter(j => j >= 0)), hide = new Set(real.slice(0, G.mys));
+  const starts = []; G.sizes.forEach(z => { starts.push(at); chunks.push(G.seq.slice(at, at += z)); });
+  const m = (i, j) => hide.has(starts[i] + j) ? 1 : 0;
+  const groups = [];
+  chunks.forEach((c, i) => { if (i > 0 && G.link[i - 1]) return; const g = [i]; let j = i; while (G.link[j]) g.push(++j); groups.push(g); });
+  r.shuffle(groups);
+  const strands = [];
+  for (const g of groups) {
+    let dir = r.int(2);
+    for (const i of g) {
+      const c = chunks[i];
+      if (G.twin[i]) {
+        const phase = r() * 6.28, A = [], B = [], side = c.map(() => r.int(2));
+        while (side.filter(v => v).length < 2) side[r.int(side.length)] = 1;
+        while (side.filter(v => !v).length < 2) side[r.int(side.length)] = 0;
+        c.forEach((x, j) => (side[j] ? B : A).push([x, +(0.16 + 0.74 * j / (c.length - 1)).toFixed(3), m(i, j)]));
+        const a = strands.length;
+        strands.push({ u: i, rk: A, dir, phase, twin: a + 1, owner: true, lock: G.lock[i], next: -1 });
+        strands.push({ u: i, rk: B, dir, phase, twin: a, owner: false, lock: -1, next: -1 });
+      } else {
+        const rk = c.map((x, q) => [x, c.length === 1 ? 0.55 : +(0.2 + 0.7 * q / (c.length - 1)).toFixed(3), m(i, q)]);
+        strands.push({ u: i, rk, dir, phase: r() * 6.28, owner: true, lock: G.lock[i], next: G.link[i] ? i + 1 : -1, twin: -1 });
+        dir = 1 - dir;
+      }
+    }
+  }
+  const strandOf = {}; strands.forEach((s, si) => { if (s.owner) strandOf[s.u] = si; });
+  strands.forEach(s => { if (s.next >= 0) s.next = strandOf[s.next]; });
+  return strands;
+}
+const levelCache = {};
+function makeLevel(L) {
+  if (levelCache[L]) return levelCache[L];
+  const S = search(L), lv = S.E.lv;
+  lv.L = L; lv.P = S.E.P; lv.Ps = S.E.Ps; lv.T = S.E.T; lv.D = S.E.D; lv.q = S.E.q; lv.inBand = S.inBand; lv.evals = S.evals;
+  lv.p = { chains: S.G.link.filter(Boolean).length, locks: S.G.lock.filter(c => c >= 0).length, twins: S.G.twin.filter(Boolean).length, duds: S.G.seq.filter(x => x < 0).length, mystery: S.G.mys, hooks: S.G.hooks };
+  lv.strands = layout(S.G, rng(L * 7919 + 99991));
+  return levelCache[L] = lv;
+}
+/* GEN-END */
+</script>
+<script>
+'use strict';
+
+/* ---------- shared helpers ---------- */
+const KEY = 'fuse', NS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = n => Math.random() * n | 0;
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = pick(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const center = e => { const b = e.getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; };
+const buzz = p => { if (navigator.vibrate) navigator.vibrate(p); };
+function el(name, attrs, text) {
+  const e = document.createElementNS(NS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  return e;
+}
+let level = 1, best = 0, muted = false; // best: highest level the current player has beaten
+try { muted = localStorage.getItem(KEY + '.muted') === '1'; } catch (e) {}
+
+/* ---------- players: kept in this browser; a transfer code carries progress to another device ---------- */
+let profiles = { active: null, list: [] }, me = null;
+function newProfile(name, color, b = 0, l = 1) {
+  return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, color, best: b, level: l };
+}
+function loadProfiles() {
+  try { const p = JSON.parse(localStorage.getItem(KEY + '.profiles')); if (p && Array.isArray(p.list)) profiles = p; } catch (e) {}
+  if (!profiles.list.length) { // progress saved before players existed becomes "Player 1"
+    let l = 1, b = 0;
+    try { l = +localStorage.getItem(KEY + '.level') || 1; b = +localStorage.getItem(KEY + '.best') || 0; } catch (e) {}
+    if (l > 1 || b > 0) profiles.list.push(newProfile('Player 1', 0, Math.max(b, l - 1), l));
+  }
+  me = profiles.list.find(p => p.id === profiles.active) || profiles.list[0] || null;
+  if (me) { profiles.active = me.id; adopt(me); }
+}
+// admin players can open any level; everyone else up to one past the last level they beat
+const reach = () => me && me.admin ? Infinity : best + 1;
+function adopt(p) { best = Math.max(0, p.best | 0); level = Math.min(Math.max(1, p.level | 0), p.admin ? Infinity : best + 1); }
+// the admin key itself is not in this file, only its SHA-256
+const ADMIN_HASH = '1971707986413d1f4379f4e4b98cfd17295163dc4c3e21fecc8cb28eff0b76fd';
+async function isAdminKey(str) {
+  const s = str.toUpperCase().replace(/[^0-9A-Z]/g, '');
+  if (s.length !== 10 || !(window.crypto && crypto.subtle)) return false;
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('fuse-admin:' + s));
+  return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('') === ADMIN_HASH;
+}
+function saveProfiles() {
+  if (me) { me.level = level; me.best = best; }
+  try { localStorage.setItem(KEY + '.profiles', JSON.stringify(profiles)); } catch (e) {}
+}
+// transfer code: levels beaten, current level and colour, with a check so typos are caught.
+// 6 characters while both numbers are under 1024; 10 characters (up to level 1,048,575) after that.
+const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ', MASK = 0x15A3C9E7;
+const check = n => (Math.imul(n, 2654435761) >>> 25) & 127;
+const BIG = 2 ** 20, W32 = 2 ** 32, W30 = 2 ** 30;
+const check2 = n => check(((n % W32) ^ Math.floor(n / W32)) >>> 0);
+function encodeSave(p) {
+  if (p.best >= 1024 || p.level >= 1024) {
+    const n = (Math.min(p.best, BIG - 1) * BIG + Math.min(p.level, BIG - 1)) * 8 + (p.color & 7);
+    let x = n * 128 + check2(n), s = '';
+    x = Math.floor(x / W30) * W30 + (((x % W30) ^ MASK) & 0x3FFFFFFF);
+    for (let i = 0; i < 10; i++) { s = B32[x % 32] + s; x = Math.floor(x / 32); }
+    return s.slice(0, 5) + '-' + s.slice(5);
+  }
+  const n = (p.best << 13) | (p.level << 3) | (p.color & 7);
+  let x = ((n * 128 + check(n)) ^ MASK) & 0x3FFFFFFF, s = '';
+  for (let i = 0; i < 6; i++) { s = B32[x & 31] + s; x >>>= 5; }
+  return s.slice(0, 3) + '-' + s.slice(3);
+}
+function decodeSave(str) {
+  const s = str.toUpperCase().replace(/[^0-9A-Z]/g, '').replace(/O/g, '0').replace(/[IL]/g, '1');
+  if (s.length === 10) {
+    let x = 0;
+    for (const ch of s) { const v = B32.indexOf(ch); if (v < 0) return null; x = x * 32 + v; }
+    x = Math.floor(x / W30) * W30 + (((x % W30) ^ MASK) & 0x3FFFFFFF);
+    const n = Math.floor(x / 128);
+    if (check2(n) !== x % 128) return null;
+    const l = Math.floor(n / 8) % BIG, b = Math.floor(n / 8 / BIG);
+    if (l < 1) return null;
+    return { best: b, level: l, color: n % 8 };
+  }
+  if (s.length !== 6) return null;
+  let x = 0;
+  for (const ch of s) { const v = B32.indexOf(ch); if (v < 0) return null; x = x * 32 + v; }
+  x = (x ^ MASK) & 0x3FFFFFFF;
+  const n = x >>> 7;
+  if (check(n) !== (x & 127)) return null;
+  const b = n >>> 13, l = (n >>> 3) & 1023;
+  if (l < 1) return null;
+  return { best: b, level: l, color: n & 7 };
+}
+loadProfiles();
+
+/* ---------- sound ---------- */
+let ac, master, wet;
+function audio() {
+  if (!ac) {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain(); master.gain.value = .55;
+    const comp = ac.createDynamicsCompressor();
+    master.connect(comp); comp.connect(ac.destination);
+    wet = ac.createGain(); wet.gain.value = .28;
+    const delay = ac.createDelay(); delay.delayTime.value = .17;
+    const fb = ac.createGain(); fb.gain.value = .32;
+    wet.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(comp);
+  }
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function tone(f, d, o = {}) {
+  if (muted) return;
+  const a = audio(), s = a.currentTime + (o.t || 0), osc = a.createOscillator(), g = a.createGain();
+  osc.type = o.type || 'sine';
+  osc.frequency.setValueAtTime(f, s);
+  if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, s + d);
+  g.gain.setValueAtTime(.0001, s);
+  g.gain.exponentialRampToValueAtTime(o.v || .3, s + .012);
+  g.gain.exponentialRampToValueAtTime(.0001, s + d);
+  osc.connect(g); g.connect(master); if (o.echo) g.connect(wet);
+  osc.start(s); osc.stop(s + d + .03);
+}
+function whoosh(d, from, to, v = .25, t = 0) {
+  if (muted) return;
+  const a = audio(), s = a.currentTime + t, n = Math.ceil(a.sampleRate * d);
+  const buf = a.createBuffer(1, n, a.sampleRate), ch = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) ch[i] = Math.random() * 2 - 1;
+  const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  src.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.3;
+  f.frequency.setValueAtTime(from, s); f.frequency.exponentialRampToValueAtTime(to, s + d);
+  g.gain.setValueAtTime(.0001, s); g.gain.exponentialRampToValueAtTime(v, s + d * .25);
+  g.gain.exponentialRampToValueAtTime(.0001, s + d);
+  src.connect(f); f.connect(g); g.connect(master); src.start(s);
+}
+const sfx = {
+  pop(f = 520, t = 0) { tone(f, .1, { to: f * .6, v: .34, t }); tone(f * 2.2, .05, { type: 'triangle', v: .1, t }); },
+  blocked() { tone(150, .1, { to: 95, type: 'square', v: .16 }); tone(130, .12, { to: 80, type: 'square', v: .16, t: .11 }); },
+  clear() { [587, 740, 880, 1175].forEach((f, i) => { tone(f, .3, { t: i * .07, v: .26, echo: 1 }); tone(f * 2, .2, { t: i * .07, type: 'triangle', v: .08, echo: 1 }); }); },
+  win() { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, .35, { t: i * .09, type: 'triangle', v: .26, echo: 1 }));
+          [523, 659, 784, 1047].forEach(f => tone(f, .9, { t: .6, v: .16, echo: 1 })); },
+  fail() { [392, 330, 262, 196].forEach((f, i) => tone(f, .28, { t: i * .14, to: f * .94, type: 'sawtooth', v: .13 })); },
+  undo() { tone(700, .1, { to: 420, type: 'triangle', v: .22 }); },
+  ui() { tone(620, .07, { to: 820, type: 'triangle', v: .18 }); }
+};
+
+/* ---------- effects and overlay ---------- */
+function burst(x, y, color, n = 12) {
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement('div'); b.className = 'bit';
+    b.style.cssText = `left:${x - 4}px;top:${y - 4}px;background:${color}`;
+    document.body.append(b);
+    const ang = rnd(0, Math.PI * 2), dist = rnd(30, 95);
+    b.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 },
+               { transform: `translate(${Math.cos(ang) * dist}px,${Math.sin(ang) * dist + 30}px) scale(.2) rotate(${rnd(-360, 360)}deg)`, opacity: 0 }],
+              { duration: rnd(450, 800), easing: 'cubic-bezier(.1,.7,.3,1)' }).onfinish = () => b.remove();
+  }
+}
+function show(title, text, buttons) {
+  $('ovT').textContent = title; $('ovP').textContent = text;
+  const box = $('ovB'); box.textContent = '';
+  for (const [label, fn, cls] of buttons) {
+    const b = document.createElement('button'); b.className = 'btn ' + (cls || ''); b.textContent = label;
+    b.onclick = () => { sfx.ui(); fn(); }; box.append(b);
+  }
+  $('ov').classList.add('show');
+}
+const hide = () => $('ov').classList.remove('show');
+function startLevel(tip) {
+  $('lvl').textContent = 'Level ' + level; $('tip').textContent = tip || ''; hide();
+  saveProfiles();
+}
+function win(title) {
+  sfx.win();
+  if (level === best + 1) best = level; // levels beaten in order (an admin playing ahead keeps their real progress)
+  saveProfiles();
+  for (let i = 0; i < 7; i++) setTimeout(() => burst(rnd(40, innerWidth - 40), rnd(80, innerHeight * .6), PALETTE[i % PALETTE.length], 16), i * 110);
+  setTimeout(() => show(level === 1000 ? 'Level 1000!' : title,
+    level === 1000 ? 'You climbed all the way. From here on the levels never end, and every one is tough.' : 'Level ' + level + ' cleared.',
+    [['Levels', openLevels, 'alt'], ['Next level', () => { level++; game.newLevel(); }]]), 650);
+}
+function lose(title, text) {
+  sfx.fail(); buzz([60, 40, 60]);
+  setTimeout(() => show(title, text, game.undo ? [['Undo', game.undo, 'alt'], ['Retry', game.restart]] : [['Retry', game.restart]]), 600);
+}
+
+/* ---------- the game ---------- */
+const FS = 1 / 3, LINK_SPEED = 320, svg = $('svg'), foot = $('foot'); // FS: share of a fuse that burns per second
+const TIERS = ['Sparkler', 'Fountain', 'Pinwheel', 'Roman Candle', 'Comet', 'Peony', 'Willow', 'Crossette', 'Palm', 'Grand Finale'];
+const TIPS = {
+  1: 'Tap a spark to light its fuse. Rockets fire in the order the flame reaches them.',
+  2: 'Three of a colour burst. Four in the sky with no match and you lose.',
+  [INTRO.chain]: 'Chain fuse: when a fuse burns out, it lights the next one. You can still light that one yourself first.',
+  [INTRO.lock]: 'Locked fuse: it opens once a burst of its colour goes off.',
+  [INTRO.twin]: 'Twin fuse: one spark lights both strands. Rockets fire in the order the two flames reach them.',
+  [INTRO.dud]: 'Dud: a grey rocket matches nothing. It holds a hook until the next burst of three.',
+  [INTRO.mystery]: 'Mystery rocket: its colour shows once its fuse is lit. Every colour comes in threes.',
+  [INTRO.small]: 'Small rack: three hooks, so at most two loose rockets.'
+};
+const NEW = {
+  [INTRO.chain]: ['New: chain fuses', 'When a chained fuse burns out, the flame runs on and lights the next fuse. Light the next one yourself first if you want it sooner.'],
+  [INTRO.lock]: ['New: locked fuses', 'A padlocked spark shows a colour. It opens once three rockets of that colour burst.'],
+  [INTRO.twin]: ['New: twin fuses', 'One spark lights two strands at once. Both flames burn at the same speed, so follow them side by side.'],
+  [INTRO.dud]: ['New: dud rockets', 'A grey dud matches nothing. It takes a hook when it fires and stays there until the next burst of three knocks it off.'],
+  [INTRO.mystery]: ['New: mystery rockets', 'A rocket marked ? hides its colour until its fuse is lit. Every colour still comes in threes, so count the ones you can see.'],
+  [INTRO.small]: ['New: small racks', 'Some racks have only three hooks. Three rockets up with no match and you lose, so you can hold at most two loose rockets.']
+};
+const DUD_COL = '#8d8aa3', MYS_COL = '#4a4360';
+let LV, strands = [], links = [], rack = [], pending = 0, fired = 0, total = 0, ended = false, paused = false, run = 0, lastT = 0, sizz = null, sizzOn = false;
+
+/* ---------- level builder: runs in a background worker so the game never freezes ---------- */
+let worker = null, want = 0, building = false;
+const waiting = {};
+function settle(L, lv) { levelCache[L] = lv; const cbs = waiting[L] || []; delete waiting[L]; cbs.forEach(f => f(lv)); }
+try {
+  const src = $('gen-src').textContent + '\nonmessage = e => postMessage({ L: e.data, lv: makeLevel(e.data) });';
+  worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+  worker.onmessage = e => settle(e.data.L, e.data.lv);
+  worker.onerror = e => { // no worker here: build on the main thread instead
+    if (e && e.preventDefault) e.preventDefault();
+    worker = null;
+    for (const L of Object.keys(waiting)) settle(+L, makeLevel(+L));
+  };
+} catch (e) { worker = null; }
+function request(L, cb) {
+  if (levelCache[L]) { if (cb) cb(levelCache[L]); return; }
+  if (worker) { const first = !waiting[L]; (waiting[L] = waiting[L] || []).push(cb || (() => {})); if (first) worker.postMessage(L); }
+  else if (cb) setTimeout(() => cb(makeLevel(L)), 30); // let the "building" card paint first
+}
+const prefetch = L => { if (worker && !levelCache[L]) request(L); };
+function newLevel() {
+  level = Math.max(1, level | 0);
+  const L = level, ticket = ++want;
+  const go = lv => {
+    if (ticket !== want) return; // a newer level was asked for meanwhile
+    building = false; LV = lv;
+    startLevel(TIPS[L] || (lv.hooks === 3 ? 'Small rack: three hooks, so at most two loose rockets.' : ''));
+    restart();
+    if (NEW[L]) show(NEW[L][0], NEW[L][1], [['Got it', hide]]);
+    prefetch(L + 1);
+  };
+  if (levelCache[L]) return go(levelCache[L]);
+  building = true; ended = true; run++; // freeze whatever was on the board
+  $('lvl').textContent = 'Level ' + L;
+  show('Level ' + L, 'Building a puzzle at exactly the right difficulty…', []);
+  request(L, go);
+}
+function pointAt(s, d) {
+  const L = s.cum; let i = 1; while (i < L.length - 1 && L[i] < d) i++;
+  const f = (d - L[i - 1]) / (L[i] - L[i - 1] || 1), a = s.pts[i - 1], b = s.pts[i];
+  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+}
+function padlock(color) {
+  const g = el('g', { class: 'lockmark' });
+  g.append(el('circle', { r: 15, class: 'ring', stroke: color }),
+           el('path', { d: 'M-3.6 -1.5 V-4.5 A3.6 3.6 0 0 1 3.6 -4.5 V-1.5', fill: 'none', stroke: '#fff', 'stroke-width': 2.2 }),
+           el('rect', { x: -5.5, y: -2, width: 11, height: 8.5, rx: 2, fill: '#fff' }));
+  return g;
+}
+function restart() {
+  run++; rack = []; links = []; pending = 0; fired = 0; ended = false; hide(); svg.textContent = '';
+  total = LV.strands.reduce((s, d) => s + d.rk.length, 0);
+  const n = LV.strands.length, bandH = 400 / n, sc = Math.min(1, bandH / 52), amp = Math.min(10, bandH * .14);
+  const layer = () => { const g = el('g', {}); svg.append(g); return g; };
+  const gAsh = layer(), gFuse = layer(), gRock = layer(), gIgn = layer(), gSpark = layer();
+  strands = LV.strands.map((d, i) => {
+    const s = { d, lit: false, done: false, prog: 0, pts: [], cum: [0], open: d.lock < 0 };
+    const y0 = 10 + bandH * (i + .7), x0 = d.twin >= 0 ? 58 : 30;
+    s.y0 = y0;
+    for (let j = 0; j <= 60; j++) {
+      const t = j / 60, xx = x0 + (330 - x0) * t;
+      s.pts.push([d.dir ? 360 - xx : xx, y0 + Math.sin(t * 9.4 + d.phase) * amp]);
+      if (j) s.cum.push(s.cum[j - 1] + Math.hypot(s.pts[j][0] - s.pts[j - 1][0], s.pts[j][1] - s.pts[j - 1][1]));
+    }
+    s.len = s.cum[60];
+    const path = 'M' + s.pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
+    gAsh.append(el('path', { d: path, class: 'ash' }));
+    s.fuse = el('path', { d: path, class: 'fuse', 'stroke-dasharray': s.len + ' ' + s.len }); gFuse.append(s.fuse);
+    s.rockets = d.rk.map(([c, f, hid]) => {
+      const color = c < 0 ? DUD_COL : LV.cols[c], [x, y] = pointAt(s, f * s.len);
+      const g = el('g', { class: 'rocket', transform: `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${sc.toFixed(3)})` });
+      g.append(el('line', { x1: 0, y1: 0, x2: 0, y2: -9, class: 'stub' }),
+               el('path', { d: 'M-6 -9 L-10 -5 L-6 -15 Z M6 -9 L10 -5 L6 -15 Z', fill: 'rgba(255,255,255,.8)' }),
+               el('path', { d: 'M0 -36 C8 -29 8 -16 6 -9 H-6 C-8 -16 -8 -29 0 -36 Z', fill: hid ? MYS_COL : color }));
+      const body = g.lastChild; let qm = null;
+      if (c < 0) g.append(el('path', { d: 'M-3.5 -26.5 L3.5 -19.5 M3.5 -26.5 L-3.5 -19.5', stroke: '#2a2838', 'stroke-width': 2.6, 'stroke-linecap': 'round' }));
+      else if (hid) { qm = el('text', { x: 0, y: -17.5, class: 'qm' }); qm.textContent = '?'; g.append(qm); }
+      else g.append(el('circle', { cx: 0, cy: -23, r: 3, fill: 'rgba(255,255,255,.85)' }));
+      gRock.append(g);
+      return { f, color, g, fired: false, hid: !!hid, body, qm };
+    });
+    s.spark = el('circle', { r: 6, class: 'spark' }); gSpark.append(s.spark);
+    return s;
+  });
+  const haloR = Math.min(25, bandH * .55);
+  strands.forEach((s, i) => {
+    const d = s.d;
+    if (!d.owner) return;
+    let ix, iy;
+    if (d.twin >= 0) { // one spark between the two twin strands, with a fork to each
+      s.partner = strands[d.twin];
+      ix = d.dir ? 334 : 26; iy = (s.y0 + s.partner.y0) / 2;
+      s.forks = [s, s.partner].map(t => {
+        const f = el('path', { d: `M${ix} ${iy} L${t.pts[0][0].toFixed(1)} ${t.pts[0][1].toFixed(1)}`, class: 'fuse' });
+        gFuse.append(f); return f;
+      });
+    } else [ix, iy] = s.pts[0];
+    if (d.next >= 0) { // chain: the fuse runs on round the edge into the next strand's spark
+      const to = strands[d.next], [ax, ay] = s.pts[60], [bx, by] = to.pts[0], dx = ax > 180 ? 26 : -26;
+      const p = `M${ax.toFixed(1)} ${ay.toFixed(1)} C${(ax + dx).toFixed(1)} ${ay.toFixed(1)} ${(bx + dx).toFixed(1)} ${by.toFixed(1)} ${bx.toFixed(1)} ${by.toFixed(1)}`;
+      gAsh.append(el('path', { d: p, class: 'ash' }));
+      const lf = el('path', { d: p, class: 'fuse' }); gFuse.append(lf);
+      const ll = lf.getTotalLength(); lf.setAttribute('stroke-dasharray', ll + ' ' + ll);
+      s.link = { path: lf, len: ll, to };
+    }
+    s.ign = el('g', { class: 'ign' + (s.open ? '' : ' locked'), transform: `translate(${ix.toFixed(1)} ${iy.toFixed(1)})` });
+    const inner = el('g', { class: 'ib' });
+    inner.append(el('circle', { r: haloR, class: 'halo' }), el('circle', { r: 11, class: 'dot' }));
+    if (!s.open) { s.lockColor = LV.cols[d.lock]; inner.append(padlock(s.lockColor)); }
+    s.ign.append(inner);
+    s.ign.addEventListener('pointerdown', e => { e.preventDefault(); light(s); });
+    gIgn.append(s.ign);
+  });
+  renderRack();
+}
+function renderRack(popLast) {
+  foot.textContent = '';
+  for (let i = 0; i < LV.hooks; i++) {
+    const s = document.createElement('div'); s.className = 'slot';
+    if (rack[i]) s.append(token(rack[i], popLast && i === rack.length - 1 ? 'in' : ''));
+    foot.append(s);
+  }
+  foot.classList.toggle('warn', rack.length === LV.hooks - 1);
+}
+function token(color, cls) { const t = document.createElement('div'); t.className = 'tok ' + cls + (color === DUD_COL ? ' dud' : ''); t.style.setProperty('--k', color); return t; }
+function light(s, auto) {
+  if (ended || paused || s.lit) return;
+  audio();
+  if (!s.open) { // still padlocked
+    sfx.blocked(); buzz(30);
+    const ib = s.ign.firstChild; ib.classList.remove('shake'); void ib.getBBox(); ib.classList.add('shake');
+    return;
+  }
+  for (const t of s.partner ? [s, s.partner] : [s]) {
+    t.lit = true; t.spark.classList.add('on');
+    for (const r of t.rockets) if (r.hid) { // lighting a fuse shows its mystery rockets
+      r.hid = false; r.body.setAttribute('fill', r.color); r.qm.remove();
+      r.g.append(el('circle', { cx: 0, cy: -23, r: 3, fill: 'rgba(255,255,255,.85)' }));
+    }
+  }
+  if (s.ign) s.ign.classList.add('lit');
+  if (s.forks) s.forks.forEach(f => f.setAttribute('class', 'ash'));
+  whoosh(.18, 3000, 6000, auto ? .18 : .3); tone(300, .12, { to: 900, type: 'triangle', v: .12 }); // match strike
+}
+function fire(r) {
+  r.fired = true; fired++; r.g.classList.add('gone');
+  tone(520, .32, { to: 2100, type: 'triangle', v: .13 }); whoosh(.3, 800, 4000, .14); // whistle
+  const [x, y] = center(r.g), slot = foot.children[Math.min(rack.length + pending, LV.hooks - 1)], [tx, ty] = center(slot);
+  burst(x, y, '#ffd27a', 6);
+  const t = token(r.color, 'fly'); t.style.left = x - 20 + 'px'; t.style.top = y - 20 + 'px'; document.body.append(t);
+  pending++; const mine = run; // a restart mid-flight must not land this rocket in the new game
+  t.animate([{ transform: 'translate(0,0) scale(.4)' },
+             { transform: `translate(${(tx - x) * .4}px,${(ty - y) * .4 - 60}px) scale(1.2)`, offset: .5 },
+             { transform: `translate(${tx - x}px,${ty - y}px) scale(1)` }],
+            { duration: 380, easing: 'ease-in-out' }).onfinish = () => { t.remove(); if (mine !== run) return; pending--; land(r.color); };
+}
+function unlock(color) {
+  for (const s of strands) {
+    if (s.open || s.lockColor !== color) continue;
+    s.open = true; s.ign.classList.remove('locked');
+    const m = s.ign.querySelector('.lockmark'); if (m) m.remove();
+    burst(...center(s.ign), color, 14);
+    tone(880, .12, { type: 'triangle', v: .2, t: .25 }); tone(1320, .2, { type: 'triangle', v: .18, t: .33, echo: 1 });
+  }
+}
+function land(color) {
+  if (ended) return;
+  rack.push(color); renderRack(true); sfx.pop(440 + rack.length * 70);
+  if (color !== DUD_COL && rack.filter(c => c === color).length === 3) {
+    [...foot.children].forEach((s, i) => { if (rack[i] === color) burst(...center(s), color, 16); else if (rack[i] === DUD_COL) burst(...center(s), DUD_COL, 6); });
+    rack = rack.filter(c => c !== color && c !== DUD_COL); // the burst knocks every dud off too
+    sfx.clear(); whoosh(.35, 300, 2500, .3); tone(110, .25, { to: 50, v: .4 }); // firework bang
+    unlock(color);
+    setTimeout(() => { if (!ended) renderRack(); }, 160);
+  }
+  if (rack.length >= LV.hooks) { ended = true; lose('Sky full!', 'All ' + LV.hooks + ' hooks are taken and nothing matches.'); }
+  else if (fired === total && !pending) { ended = true; win('Grand finale!'); }
+  else checkStuck();
+}
+// lose if nothing is burning or flying and every unlit spark is padlocked
+function checkStuck() {
+  if (ended || pending || fired === total || links.length) return;
+  if (strands.some(s => s.lit && !s.done)) return;
+  if (strands.some(s => s.ign && !s.lit && s.open)) return;
+  ended = true; lose('Out of sparks', 'Every fuse left is locked.');
+}
+// the hiss of burning fuses: one looping noise source, faded in while anything burns
+function sizzle(on) {
+  if (!ac || on === sizzOn) return;
+  if (!sizz) {
+    const buf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), ch = buf.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+    const src = ac.createBufferSource(), f = ac.createBiquadFilter(); sizz = ac.createGain();
+    src.buffer = buf; src.loop = true; f.type = 'highpass'; f.frequency.value = 4500; sizz.gain.value = 0;
+    src.connect(f); f.connect(sizz); sizz.connect(master); src.start();
+  }
+  sizzOn = on; sizz.gain.setTargetAtTime(on ? .06 : 0, ac.currentTime, .05);
+}
+function frame(now) {
+  const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
+  let burning = false;
+  if (!ended && !paused) {
+    for (const s of strands) {
+      if (!s.lit || s.done) continue;
+      burning = true;
+      s.prog = Math.min(1, s.prog + FS * dt);
+      const p = s.prog * s.len;
+      s.fuse.style.strokeDashoffset = -p;
+      const [x, y] = pointAt(s, p);
+      s.spark.setAttribute('cx', x + rnd(-1, 1)); s.spark.setAttribute('cy', y + rnd(-1, 1)); s.spark.setAttribute('r', rnd(4.5, 7));
+      for (const r of s.rockets) if (!r.fired && r.f <= s.prog) fire(r);
+      if (s.prog >= 1) {
+        s.done = true; s.spark.classList.remove('on');
+        if (s.link) { const sp = el('circle', { r: 6, class: 'spark on' }); svg.append(sp); links.push({ ...s.link, prog: 0, sp }); }
+      }
+    }
+    for (const l of links.slice()) {
+      burning = true;
+      l.prog = Math.min(l.len, l.prog + LINK_SPEED * dt);
+      l.path.style.strokeDashoffset = -l.prog;
+      const pt = l.path.getPointAtLength(l.prog);
+      l.sp.setAttribute('cx', pt.x + rnd(-1, 1)); l.sp.setAttribute('cy', pt.y + rnd(-1, 1)); l.sp.setAttribute('r', rnd(4.5, 7));
+      if (l.prog >= l.len) { l.sp.remove(); links.splice(links.indexOf(l), 1); light(l.to, true); }
+    }
+    if (!burning) checkStuck();
+  }
+  sizzle(burning && !muted);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+const game = { newLevel, restart };
+
+/* ---------- level select ---------- */
+// tiers of 100 levels, built as they're needed: everything up to one tier past the furthest level you can open
+// (at most 30 tiers at a time; older ones are a tap away)
+const tierName = t => TIERS[t % TIERS.length] + (t >= TIERS.length ? ' ' + (Math.floor(t / TIERS.length) + 1) : '');
+let gridFrom = 0; // first tier on show
+function openLevels(earlier) {
+  const grid = $('grid'), far = Math.max(level, Math.min(reach(), best + 1)), last = Math.max(9, Math.floor((far - 1) / 100) + 1);
+  if (!grid.dataset.wired) {
+    grid.dataset.wired = 1;
+    grid.addEventListener('click', e => {
+      if (e.target.classList.contains('more')) { gridFrom = Math.max(0, gridFrom - 30); openLevels(true); return; }
+      const L = +e.target.dataset.l;
+      if (!L || L > reach()) return;
+      sfx.ui(); closeLevels(); level = L; game.newLevel();
+    });
+  }
+  const first = Math.max(0, last - 29);
+  if (earlier !== true) gridFrom = first; // opens on the latest 30 tiers
+  if (+grid.dataset.from !== gridFrom || +grid.dataset.last !== last) { // (re)build the visible tiers
+    grid.textContent = ''; grid.dataset.from = gridFrom; grid.dataset.last = last;
+    if (gridFrom > 0) { const m = document.createElement('button'); m.className = 'btn alt more'; m.type = 'button'; m.textContent = 'Show earlier levels'; grid.append(m); }
+    for (let t = gridFrom; t <= last; t++) {
+      const hd = document.createElement('div'); hd.className = 'tier';
+      hd.innerHTML = `<span>${tierName(t)}</span><span>${t * 100 + 1}–${t * 100 + 100}</span>`;
+      const cells = document.createElement('div'); cells.className = 'cells';
+      for (let L = t * 100 + 1; L <= t * 100 + 100; L++) {
+        const c = document.createElement('button'); c.className = 'cell'; c.textContent = L; c.dataset.l = L;
+        cells.append(c);
+      }
+      grid.append(hd, cells);
+    }
+  }
+  let cur;
+  for (const c of grid.querySelectorAll('.cell')) {
+    const L = +c.dataset.l;
+    c.className = 'cell' + (L <= best ? ' done' : L === best + 1 ? ' cur' : L > reach() ? ' locked' : '') + (L === level ? ' here' : '');
+    c.disabled = L > reach();
+    if (L === level) cur = c;
+  }
+  $('selProg').textContent = best + (best === 1 ? ' level' : ' levels') + ' cleared' + (me && me.admin ? ' · admin' : '');
+  $('jump').hidden = !(me && me.admin);
+  paused = true; $('sel').classList.add('show');
+  if (cur) cur.scrollIntoView({ block: 'center' });
+}
+$('jump').addEventListener('submit', e => {
+  e.preventDefault();
+  const L = Math.floor(+$('jumpL').value);
+  if (!(L >= 1) || L > reach()) return;
+  $('jumpL').value = ''; sfx.ui(); closeLevels(); level = L; game.newLevel();
+});
+function closeLevels() { $('sel').classList.remove('show'); syncPause(); }
+const syncPause = () => { paused = $('sel').classList.contains('show') || $('prof').classList.contains('show'); };
+
+/* ---------- players panel ---------- */
+let newColor = 0;
+const initial = p => (p.name.trim()[0] || '?').toUpperCase();
+function renderMe() {
+  const b = $('me');
+  if (me) { b.textContent = initial(me); b.style.setProperty('--k', PALETTE[me.color]); b.title = me.name + ' · switch player'; }
+  else { b.textContent = '+'; b.style.removeProperty('--k'); b.title = 'Players'; }
+}
+function useProfile(p) {
+  saveProfiles(); me = p; profiles.active = p.id; adopt(p); saveProfiles(); renderMe(); game.newLevel();
+}
+function removeProfile(p) {
+  profiles.list = profiles.list.filter(q => q !== p);
+  if (p === me) {
+    me = null; profiles.active = null;
+    if (profiles.list.length) useProfile(profiles.list[0]);
+    else { best = 0; level = 1; saveProfiles(); renderMe(); game.newLevel(); }
+  } else saveProfiles();
+  renderProfiles();
+}
+function openProfiles() {
+  newColor = Math.max(0, PALETTE.findIndex((_, i) => !profiles.list.some(p => p.color === i))); // first colour nobody here uses
+  $('pmsg').textContent = ''; $('lmsg').textContent = ''; renderProfiles(); $('prof').classList.add('show'); syncPause(); }
+function closeProfiles() { if (!me) return; $('prof').classList.remove('show'); syncPause(); }
+function renderProfiles() {
+  const first = !me;
+  $('profT').textContent = first ? "Who's playing?" : 'Players';
+  $('profSub').textContent = first ? 'Make a player to save your progress.' : 'Tap a player to switch.';
+  $('profX').hidden = first;
+  $('pformT').textContent = first ? 'Your name' : 'New player';
+  const list = $('plist'); list.textContent = ''; list.hidden = !profiles.list.length;
+  for (const p of profiles.list) {
+    const row = document.createElement('div'); row.className = 'prow' + (p === me ? ' on' : '');
+    const pick = document.createElement('button'); pick.className = 'ppick'; pick.type = 'button';
+    const av = document.createElement('span'); av.className = 'av'; av.textContent = initial(p); av.style.setProperty('--k', PALETTE[p.color]);
+    const txt = document.createElement('span'); txt.className = 'ptxt';
+    const nm = document.createElement('b'); nm.textContent = p.name;
+    const st = document.createElement('small'); st.textContent = (p.admin ? 'Admin · ' : '') + (p === me ? 'Playing now · ' : 'Level ' + p.level + ' · ') + p.best + ' cleared';
+    txt.append(nm, st); pick.append(av, txt);
+    pick.onclick = () => { sfx.ui(); if (p !== me) useProfile(p); closeProfiles(); };
+    const del = document.createElement('button'); del.className = 'pdel'; del.type = 'button'; del.textContent = 'Delete';
+    del.setAttribute('aria-label', 'Delete ' + p.name);
+    del.onclick = () => {
+      if (!del.classList.contains('sure')) { // second tap confirms
+        del.classList.add('sure'); del.textContent = 'Sure?';
+        setTimeout(() => { del.classList.remove('sure'); del.textContent = 'Delete'; }, 2500);
+        return;
+      }
+      sfx.ui(); removeProfile(p);
+    };
+    row.append(pick, del); list.append(row);
+  }
+  const sw = $('pcols'); sw.textContent = '';
+  PALETTE.forEach((c, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'sw' + (i === newColor ? ' on' : '');
+    b.style.setProperty('--k', c); b.setAttribute('aria-label', 'Colour ' + (i + 1));
+    b.onclick = () => { newColor = i; [...sw.children].forEach((x, j) => x.classList.toggle('on', j === i)); };
+    sw.append(b);
+  });
+  $('ptrans').hidden = first;
+  if (me) { saveProfiles(); $('pcode').textContent = encodeSave(me); }
+}
+$('pform').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('pname').value.replace(/\s+/g, ' ').trim().slice(0, 14), msg = $('pmsg');
+  msg.className = 'pmsg';
+  if (!name) { msg.textContent = 'Type a name first.'; $('pname').focus(); return; }
+  if (profiles.list.some(p => p.name.toLowerCase() === name.toLowerCase())) { msg.textContent = 'There is already a player called ' + name + ' on this device.'; return; }
+  const p = newProfile(name, newColor); profiles.list.push(p); $('pname').value = ''; msg.textContent = '';
+  sfx.ui(); useProfile(p); closeProfiles();
+});
+$('lform').addEventListener('submit', async e => {
+  e.preventDefault();
+  const d = decodeSave($('lcode').value), msg = $('lmsg');
+  msg.className = 'pmsg';
+  if (!d && me && await isAdminKey($('lcode').value)) { // the admin key turns admin on or off for this player
+    me.admin = !me.admin; if (!me.admin) delete me.admin;
+    adopt(me); saveProfiles(); $('lcode').value = ''; renderMe(); renderProfiles();
+    msg.className = 'pmsg ok';
+    msg.textContent = me.admin ? me.name + ' is now an admin: every level is open in the level grid.' : 'Admin turned off for ' + me.name + '.';
+    return;
+  }
+  if (!d) { msg.textContent = "That code isn't right. Check the code and try again."; return; }
+  if (d.best <= me.best) { msg.textContent = me.name + ' has already cleared ' + me.best + ' levels, so nothing changed.'; return; }
+  me.color = d.color; adopt(d); saveProfiles(); $('lcode').value = '';
+  renderMe(); game.newLevel(); renderProfiles();
+  msg.className = 'pmsg ok'; msg.textContent = 'Progress loaded: ' + d.best + (d.best === 1 ? ' level' : ' levels') + ' cleared.';
+});
+$('pcopy').onclick = () => {
+  const code = $('pcode').textContent, btn = $('pcopy');
+  const selectIt = () => { const r = document.createRange(); r.selectNodeContents($('pcode')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+  try {
+    navigator.clipboard.writeText(code).then(() => { btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy', 1500); }, selectIt);
+  } catch (err) { selectIt(); }
+};
+$('me').onclick = () => { sfx.ui(); openProfiles(); };
+$('profX').onclick = () => { sfx.ui(); closeProfiles(); };
+
+/* ---------- boot ---------- */
+if (game.undo) $('undo').onclick = game.undo; else $('undo').style.display = 'none';
+$('restart').onclick = () => { if (building) return; sfx.ui(); game.restart(); };
+$('lvl').onclick = () => { sfx.ui(); openLevels(); };
+$('selX').onclick = () => { sfx.ui(); closeLevels(); };
+$('mute').onclick = () => {
+  muted = !muted; $('mute').classList.toggle('off', muted);
+  try { localStorage.setItem(KEY + '.muted', muted ? '1' : '0'); } catch (e) {}
+  sfx.ui();
+};
+$('mute').classList.toggle('off', muted);
+renderMe();
+game.newLevel();
+if (!me) openProfiles();
+</script>
+</body>
+</html>
