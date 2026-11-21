@@ -44,9 +44,6 @@
 </main>
 <script>
 const GAMES = [
-  { slug: 'iron-and-ember', name: 'Iron & Ember', big: true, tags: ['Strategy', '3D'],
-    text: 'Gather gold and timber, raise a barracks and march on the crimson keep before its warlord burns yours to the ground.',
-    icon: '<rect width="64" height="64" rx="16" fill="#2a1712"/><path d="M32 10c6 9 13 13 13 24a13 13 0 0 1-26 0c0-6 3-9 6-12 0 5 2 7 4 7-2-7 0-13 3-19z" fill="#ff7a2f"/><path d="M32 30c3 4 6 6 6 10a6 6 0 0 1-12 0c0-4 3-6 6-10z" fill="#ffd166"/>' },
   { slug: 'fuse', name: 'Fuse', tags: ['Puzzle', 'Endless levels'], prog: progFuse,
     text: 'Light the fuses in the right order and match three rockets of a colour.',
     icon: '<rect width="64" height="64" rx="16" fill="#1a1440"/><path d="M32 8c9 8 9 22 7 30H25c-2-8-2-22 7-30z" fill="#ff4d6d"/><circle cx="32" cy="24" r="4" fill="#fff"/><path d="M25 38l-6 6 6-14zM39 38l6 6-6-14z" fill="#ffc300"/><path d="M32 40v14" stroke="#f1dfb4" stroke-width="3" stroke-linecap="round"/>' },
@@ -64,7 +61,10 @@ const GAMES = [
     icon: '<rect width="64" height="64" rx="16" fill="#302612"/><path d="M32 50V20" stroke="#f1dfb4" stroke-width="3"/><path d="M12 24h40" stroke="#f1dfb4" stroke-width="3" stroke-linecap="round"/><path d="M24 50h16" stroke="#f1dfb4" stroke-width="4" stroke-linecap="round"/><rect x="11" y="28" width="11" height="11" rx="3" fill="#ffc300"/><rect x="42" y="28" width="11" height="11" rx="3" fill="#ff4d6d"/>' },
   { slug: 'zero-hour', name: 'Zero Hour', key: 'zerohour', tags: ['Puzzle'],
     text: 'Every tap makes all the other bubbles count down. Pop each one before it hits zero.',
-    icon: '<rect width="64" height="64" rx="16" fill="#101e3a"/><circle cx="32" cy="32" r="19" fill="#4dabff"/><text x="32" y="40" text-anchor="middle" font-size="22" font-weight="900" font-family="system-ui,sans-serif" fill="#fff">3</text>' }
+    icon: '<rect width="64" height="64" rx="16" fill="#101e3a"/><circle cx="32" cy="32" r="19" fill="#4dabff"/><text x="32" y="40" text-anchor="middle" font-size="22" font-weight="900" font-family="system-ui,sans-serif" fill="#fff">3</text>' },
+  { slug: 'iron-and-ember', name: 'Iron & Ember', big: true, tags: ['Strategy', '3D'],
+    text: 'Gather gold and timber, raise a barracks and march on the crimson keep before its warlord burns yours to the ground.',
+    icon: '<rect width="64" height="64" rx="16" fill="#2a1712"/><path d="M32 10c6 9 13 13 13 24a13 13 0 0 1-26 0c0-6 3-9 6-12 0 5 2 7 4 7-2-7 0-13 3-19z" fill="#ff7a2f"/><path d="M32 30c3 4 6 6 6 10a6 6 0 0 1-12 0c0-4 3-6 6-10z" fill="#ffd166"/>' }
 ];
 function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function progFuse() {
